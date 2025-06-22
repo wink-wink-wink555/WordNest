@@ -179,7 +179,7 @@ pip-licenses
 
 ## 联系信息
 
-- **安全团队邮箱**：security@example.com
+- **安全团队邮箱**：yfsun.jeff@gmail.com
 - **项目维护者**：[@wink-wink-wink555](https://github.com/wink-wink-wink555)
 - **安全讨论区**：[GitHub Discussions](https://github.com/wink-wink-wink555/WordNest/discussions)
 
