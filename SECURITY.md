@@ -16,7 +16,7 @@
 ### 报告方式
 
 1. **私人邮箱报告**（推荐）
-   - 发送邮件至：security@example.com
+   - 发送邮件至：yfsun.jeff@gmail.com
    - 主题格式：`[SECURITY] WordNest 安全漏洞报告`
 
 2. **GitHub私人报告**
