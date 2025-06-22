@@ -15,7 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///words.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Deepseek API配置
-DEEPSEEK_API_KEY = "your_api_key"
+DEEPSEEK_API_KEY = "your_deepseek_api_key"
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 # 初始化数据库
