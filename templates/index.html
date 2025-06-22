@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词自测系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        .encouragement {
+            font-size: 0.9rem;
+            margin-top: 20px;
+            color: #8fa5c0;
+            font-weight: 400;
+            text-align: center;
+            opacity: 0.8;
+            animation: fadeIn 1s ease-in-out;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 85vh;
+            justify-content: center;
+            position: relative;
+            overflow: visible;
+        }
+        .word-list-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background-color: var(--primary-color);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .word-list-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+        }
+        #definition-container {
+            position: relative;
+            z-index: 10;
+            transform-origin: top center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .word-card {
+            transform: translateY(0);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            max-width: 700px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .word-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 25px;
+        }
+        .btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+        }
+        #show-definition {
+            background: linear-gradient(to right, #f1c40f, #f39c12);
+            color: #fff;
+            font-weight: 500;
+        }
+        #next-word {
+            background: linear-gradient(to right, #4a6cf7, #3951c6);
+            font-weight: 500;
+        }
+        #current-word {
+            animation: wordAppear 0.6s ease-out;
+        }
+        @keyframes wordAppear {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .word-actions {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 15px;
+        }
+        .action-icon-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        .action-icon-btn:hover {
+            background-color: #e9ecef;
+            transform: scale(1.1);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        }
+        /* 上一个单词信息样式 */
+        .prev-word-info {
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            color: #8fa5c0;
+            font-weight: 400;
+            text-align: center;
+            opacity: 0.8;
+        }
+        #prevWordText {
+            color: var(--primary-color);
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: all 0.2s ease;
+        }
+        #prevWordText:hover {
+            color: var(--primary-hover);
+        }
+        /* 单词详情弹出框样式 */
+        .word-details-popup {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+            border-radius: 15px 15px 0 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .word-details-popup.show {
+            transform: translateY(0);
+        }
+        
+        .word-details-content {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 25px;
+        }
+        
+        .word-details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        
+        .word-details-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .close-details-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .close-details-btn:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .word-definition-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .word-definition-item {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .definition-part-of-speech {
+            display: inline-block;
+            font-weight: bold;
+            color: var(--danger-color);
+            margin-bottom: 8px;
+        }
+        
+        .definition-meaning {
+            margin-bottom: 8px;
+        }
+        
+        .definition-example {
+            color: var(--primary-color);
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+        
+        .definition-note {
+            color: var(--success-color);
+        }
+        
+        /* 添加单词详情页中喇叭按钮的样式 */
+        .word-title-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .speak-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-left: 10px;
+            padding: 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .speak-btn:hover {
+            transform: scale(1.1);
+            background-color: var(--primary-hover);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .speak-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .speak-btn.playing {
+            animation: pulse 1.5s infinite;
+        }
+        
+        .dark-mode .speak-btn {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode .speak-btn:hover {
+            background-color: var(--primary-hover);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- 添加主题切换按钮 -->
+    <button id="themeToggleBtn" class="theme-toggle-btn" title="切换主题">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIcon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    </button>
+
+    <a href="/word_list" class="word-list-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        查看单词列表
+    </a>
+    
+    <div class="container">
+        <!-- 移除上一个单词旁边的喇叭按钮，改回原来的样式 -->
+        <div class="prev-word-info">上一个：<span id="prevWordText">-</span></div>
+        
+        <div class="word-card">
+            <div class="word-display">
+                <div id="current-word">点击"下一个"开始</div>
+                <div class="word-actions">
+                    <button id="speak-word-btn" class="action-icon-btn" title="朗读单词">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                    </button>
+                    <button id="edit-word-btn" class="action-icon-btn" title="编辑单词">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                    <button id="mark-word-btn" class="action-icon-btn" title="标记单词">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="definition-container" class="hidden">
+                <div id="definition-content"></div>
+            </div>
+            
+            <div class="button-group">
+                <button id="show-definition" class="btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    查看意思
+                </button>
+                <button id="next-word" class="btn primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    下一个
+                </button>
+            </div>
+        </div>
+        
+        <div class="encouragement">{{ encouragement }}</div>
+    </div>
+
+    <!-- 修改单词详情弹窗，添加喇叭按钮 -->
+    <div id="wordDetailsPopup" class="word-details-popup">
+        <div class="word-details-content">
+            <div class="word-details-header">
+                <div class="word-title-container">
+                    <h2 id="detailsWordTitle" class="word-details-title"></h2>
+                    <button id="speak-details-word-btn" class="action-icon-btn speak-btn" title="朗读单词">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                    </button>
+                </div>
+                <button id="closeDetailsBtn" class="close-details-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div id="wordDefinitionList" class="word-definition-list">
+                <!-- 动态填充单词定义内容 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加音频元素用于播放语音 -->
+    <audio id="word-audio" style="display: none;"></audio>
+
+    <!-- 重要：先添加我们的脚本，再加载script.js -->
+    <script>
+        // 全局变量，标识弹窗是否刚刚关闭和是否处于显示状态
+        window.popupJustClosed = false;
+        window.isPopupVisible = false;
+        
+        // 朗读单词函数
+        function speakWord(word) {
+            if (!word || word === '点击"下一个"开始' || word === '加载中...' || word.includes('加载')) {
+                return;
+            }
+            
+            // 获取音频元素和朗读按钮
+            const audio = document.getElementById('word-audio');
+            const speakBtn = document.getElementById('speak-word-btn');
+            
+            // 获取详情页朗读按钮（如果存在）
+            const speakDetailsBtn = document.getElementById('speak-details-word-btn');
+            
+            // 添加playing类以显示动画
+            if (speakBtn) speakBtn.classList.add('playing');
+            if (speakDetailsBtn && wordDetailsPopup.classList.contains('show')) {
+                speakDetailsBtn.classList.add('playing');
+            }
+            
+            // 设置音频源
+            audio.src = `/speak_word/${encodeURIComponent(word)}`;
+            
+            // 播放结束时移除动画类
+            audio.onended = function() {
+                if (speakBtn) speakBtn.classList.remove('playing');
+                if (speakDetailsBtn) speakDetailsBtn.classList.remove('playing');
+            };
+            
+            // 播放失败时也移除动画类
+            audio.onerror = function() {
+                if (speakBtn) speakBtn.classList.remove('playing');
+                if (speakDetailsBtn) speakDetailsBtn.classList.remove('playing');
+                console.error('播放单词音频失败');
+            };
+            
+            // 播放音频
+            audio.play().catch(error => {
+                if (speakBtn) speakBtn.classList.remove('playing');
+                if (speakDetailsBtn) speakDetailsBtn.classList.remove('playing');
+                console.error('播放单词音频失败:', error);
+            });
+        }
+        
+        // 拦截所有右箭头键事件的函数 - 使用捕获阶段确保最早处理
+        function globalKeydownHandler(event) {
+            // 右箭头键事件拦截判断
+            if ((event.key === 'ArrowRight' || event.keyCode === 39) && 
+                (window.isPopupVisible || window.popupJustClosed)) {
+                console.log("右箭头键被拦截 - 弹窗状态:", window.isPopupVisible, "刚关闭状态:", window.popupJustClosed);
+                
+                // 如果弹窗显示中，则关闭弹窗
+                if (window.isPopupVisible) {
+                    const wordDetailsPopup = document.getElementById('wordDetailsPopup');
+                    if (wordDetailsPopup) {
+                        wordDetailsPopup.classList.remove('show');
+                        window.isPopupVisible = false;
+                        window.currentDisplayingWord = null;
+                        
+                        // 设置刚关闭标志
+                        window.popupJustClosed = true;
+                        setTimeout(function() {
+                            window.popupJustClosed = false;
+                        }, 500);
+                    }
+                }
+                
+                // 完全阻止事件传播
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return false;
+            }
+        }
+        
+        // 最早添加捕获阶段事件监听器，以便拦截所有键盘事件
+        document.addEventListener('keydown', globalKeydownHandler, true);
+        
+        // 文档加载完成后的处理
+        document.addEventListener('DOMContentLoaded', function() {
+            // 常规的DOMContentLoaded处理...
+            
+            // 获取元素引用
+            const prevWordText = document.getElementById('prevWordText');
+            const currentWordElement = document.getElementById('current-word');
+            const nextWordBtn = document.getElementById('next-word');
+            const wordDetailsPopup = document.getElementById('wordDetailsPopup');
+            const detailsWordTitle = document.getElementById('detailsWordTitle');
+            const wordDefinitionList = document.getElementById('wordDefinitionList');
+            const closeDetailsBtn = document.getElementById('closeDetailsBtn');
+            const speakWordBtn = document.getElementById('speak-word-btn');
+            const speakDetailsWordBtn = document.getElementById('speak-details-word-btn');
+            
+            // 朗读按钮点击事件
+            speakWordBtn.addEventListener('click', function() {
+                const currentWord = currentWordElement.textContent.trim();
+                speakWord(currentWord);
+            });
+            
+            // 单词详情页朗读按钮点击事件
+            speakDetailsWordBtn.addEventListener('click', function() {
+                const detailsWord = detailsWordTitle.textContent.trim();
+                if (detailsWord) {
+                    speakWord(detailsWord);
+                }
+            });
+            
+            // 记录当前显示的单词
+            window.currentDisplayingWord = null;
+            
+            // 监视弹窗显示状态的变化
+            const popupObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.attributeName === 'class') {
+                        const isShowing = wordDetailsPopup.classList.contains('show');
+                        window.isPopupVisible = isShowing;
+                        console.log("弹窗状态变化:", isShowing);
+                    }
+                });
+            });
+            
+            // 启动弹窗状态观察
+            popupObserver.observe(wordDetailsPopup, { attributes: true });
+            
+            // 关闭弹窗按钮事件
+            closeDetailsBtn.addEventListener('click', function() {
+                wordDetailsPopup.classList.remove('show');
+                window.currentDisplayingWord = null;
+                window.isPopupVisible = false;
+                window.popupJustClosed = true;
+                setTimeout(function() {
+                    window.popupJustClosed = false;
+                }, 500);
+            });
+            
+            // 点击"上一个单词"显示或关闭详情
+            prevWordText.addEventListener('click', function() {
+                const word = prevWordText.textContent.trim();
+                if (word && word !== '-') {
+                    if (window.currentDisplayingWord === word && wordDetailsPopup.classList.contains('show')) {
+                        wordDetailsPopup.classList.remove('show');
+                        window.currentDisplayingWord = null;
+                        window.isPopupVisible = false;
+                        window.popupJustClosed = true;
+                        setTimeout(function() {
+                            window.popupJustClosed = false;
+                        }, 500);
+                    } else {
+                        showWordDetails(word);
+                        window.currentDisplayingWord = word;
+                        window.isPopupVisible = true;
+                    }
+                }
+            });
+            
+            // 点击弹窗外部区域关闭弹窗
+            document.addEventListener('click', function(event) {
+                if (wordDetailsPopup.classList.contains('show') && 
+                    !wordDetailsPopup.contains(event.target) && 
+                    event.target !== prevWordText) {
+                    wordDetailsPopup.classList.remove('show');
+                    window.currentDisplayingWord = null;
+                    window.isPopupVisible = false;
+                    window.popupJustClosed = true;
+                    setTimeout(function() {
+                        window.popupJustClosed = false;
+                    }, 500);
+                }
+            });
+            
+            // 添加我们自己的键盘事件处理函数
+            document.addEventListener('keydown', function(event) {
+                // 获取当前弹窗状态
+                const isPopupVisible = wordDetailsPopup.classList.contains('show');
+                
+                // 左箭头键 - 呼出上一个单词详情弹窗
+                if (event.key === 'ArrowLeft' || event.keyCode === 37) {
+                    if (!isPopupVisible && !window.popupJustClosed) {
+                        const word = prevWordText.textContent.trim();
+                        if (word && word !== '-') {
+                            prevWordText.click();
+                            event.preventDefault();
+                        }
+                    }
+                }
+                
+                // 下箭头键 - 关闭单词详情弹窗
+                if (event.key === 'ArrowDown' || event.keyCode === 40) {
+                    if (isPopupVisible) {
+                        wordDetailsPopup.classList.remove('show');
+                        window.currentDisplayingWord = null;
+                        window.isPopupVisible = false;
+                        window.popupJustClosed = true;
+                        setTimeout(function() {
+                            window.popupJustClosed = false;
+                        }, 500);
+                        event.preventDefault();
+                    }
+                }
+                
+                // 空格键 - 查看/关闭单词意思
+                if (event.key === ' ' || event.keyCode === 32) {
+                    // 如果弹窗显示中，不要触发空格键功能
+                    if (isPopupVisible) {
+                        event.preventDefault();
+                        return;
+                    }
+                    
+                    // 防止空格键触发页面滚动
+                    event.preventDefault();
+                    
+                    // 获取释义容器
+                    const definitionContainer = document.getElementById('definition-container');
+                    
+                    // 获取显示意思按钮
+                    const showDefinitionBtn = document.getElementById('show-definition');
+                    
+                    // 检查当前释义容器的显示状态并切换
+                    if (definitionContainer.classList.contains('hidden')) {
+                        // 如果是隐藏状态，则显示
+                        definitionContainer.classList.remove('hidden');
+                        // 更改按钮文本
+                        showDefinitionBtn.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                            关闭意思
+                        `;
+                    } else {
+                        // 如果是显示状态，则隐藏
+                        definitionContainer.classList.add('hidden');
+                        // 更改按钮文本
+                        showDefinitionBtn.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            查看意思
+                        `;
+                    }
+                }
+            });
+            
+            // 拦截"下一个单词"按钮点击事件
+            if (nextWordBtn) {
+                // 保存原始的onclick处理函数
+                const originalOnClick = nextWordBtn.onclick;
+                
+                // 使用新函数完全替换原有的onclick
+                nextWordBtn.onclick = function(event) {
+                    // 如果弹窗正在显示或刚刚被关闭，禁止执行下一个单词功能
+                    if (window.isPopupVisible || window.popupJustClosed) {
+                        console.log("下一个单词按钮点击被拦截 - 弹窗状态:", window.isPopupVisible, "刚关闭状态:", window.popupJustClosed);
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return false;
+                    }
+                    
+                    // 否则执行原始处理函数
+                    if (typeof originalOnClick === 'function') {
+                        return originalOnClick.call(this, event);
+                    }
+                };
+            }
+            
+            // 显示单词详情的函数
+            function showWordDetails(word) {
+                // 设置详情标题
+                detailsWordTitle.textContent = word;
+                
+                // 清空旧内容
+                wordDefinitionList.innerHTML = '';
+                
+                // 添加加载中提示
+                wordDefinitionList.innerHTML = '<div class="word-definition-item">加载中...</div>';
+                
+                // 显示弹窗
+                wordDetailsPopup.classList.add('show');
+                window.isPopupVisible = true;
+                
+                // 从服务器获取单词详情
+                fetch(`/get_word_details/${word}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // 只有当弹窗仍在显示时才更新内容
+                        if (wordDetailsPopup.classList.contains('show')) {
+                            // 清空加载提示
+                            wordDefinitionList.innerHTML = '';
+                            
+                            if (data.current) {
+                                // 填充定义内容
+                                data.current.definitions.forEach(def => {
+                                    const defItem = document.createElement('div');
+                                    defItem.className = 'word-definition-item';
+                                    
+                                    const html = `
+                                        <div class="definition-part-of-speech">${def.part_of_speech || '未知词性'}</div>
+                                        <div class="definition-meaning">${def.meaning || ''}</div>
+                                        ${def.example ? `<div class="definition-example">${def.example}</div>` : ''}
+                                        ${def.note ? `<div class="definition-note">${def.note}</div>` : ''}
+                                    `;
+                                    
+                                    defItem.innerHTML = html;
+                                    wordDefinitionList.appendChild(defItem);
+                                });
+                            } else {
+                                // 显示错误信息
+                                wordDefinitionList.innerHTML = `
+                                    <div class="word-definition-item">
+                                        <div style="color: var(--danger-color);">获取单词详情失败</div>
+                                        <div>${data.error || '请稍后再试'}</div>
+                                    </div>
+                                `;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        // 只有当弹窗仍在显示时才更新内容
+                        if (wordDetailsPopup.classList.contains('show')) {
+                            // 显示错误信息
+                            wordDefinitionList.innerHTML = `
+                                <div class="word-definition-item">
+                                    <div style="color: var(--danger-color);">获取单词详情失败</div>
+                                    <div>网络错误，请稍后再试</div>
+                                </div>
+                            `;
+                            console.error('获取单词详情错误:', error);
+                        }
+                    });
+            }
+            
+            // 当前单词
+            let currentWord = '';
+            
+            // 监听页面内容变化
+            setInterval(function() {
+                const displayedWord = currentWordElement.textContent.trim();
+                
+                // 如果显示的单词变了，并且不是加载状态
+                if (displayedWord !== currentWord && 
+                    displayedWord !== '点击"下一个"开始' && 
+                    displayedWord !== '加载中...' && 
+                    displayedWord !== '加载中' &&
+                    !displayedWord.includes('加载')) {
+                    
+                    // 如果之前有单词，则更新"上一个单词"
+                    if (currentWord && 
+                        currentWord !== '点击"下一个"开始' && 
+                        currentWord !== '加载中...' && 
+                        currentWord !== '加载中' &&
+                        !currentWord.includes('加载')) {
+                        prevWordText.textContent = currentWord;
+                    }
+                    
+                    // 记录新的当前单词
+                    currentWord = displayedWord;
+                    
+                    // 自动朗读新显示的单词
+                    speakWord(displayedWord);
+                }
+            }, 500);
+        });
+    </script>
+    
+    <!-- 注意：这里移动了script.js加载的位置，确保我们的代码先执行 -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <script>
+        // 主题切换相关的脚本 - 放在最开始以确保快速应用主题
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const themeIcon = document.getElementById('themeIcon');
+            
+            // 检查用户偏好
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            
+            // 应用初始主题
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark-mode');
+                updateThemeIcon(true);
+            }
+            
+            // 主题切换事件
+            themeToggleBtn.addEventListener('click', function() {
+                const isDarkMode = document.documentElement.classList.toggle('dark-mode');
+                localStorage.setItem('darkMode', isDarkMode);
+                updateThemeIcon(isDarkMode);
+            });
+            
+            // 更新图标显示
+            function updateThemeIcon(isDarkMode) {
+                if (isDarkMode) {
+                    // 显示太阳图标（亮色模式图标）
+                    themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+                } else {
+                    // 显示月亮图标（暗色模式图标）
+                    themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+                }
+            }
+        });
+    </script>
+</body>
+</html> 
