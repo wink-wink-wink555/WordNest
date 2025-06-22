@@ -20,7 +20,7 @@
 
 于是WordNest就诞生啦~ 一个真正专注于**你的生词**的单词手账，告别无效重复，让每一分钟的学习都用在刀刃上！
 
-**开发者**: [@wink-wink-wink555](https://github.com/wink-wink-wink555) | 一个被单词软件伤害过的程序员 (◕‿◕)
+**开发者**: [@wink-wink-wink555](https://github.com/wink-wink-wink555) | 一个被单词软件伤害过的带学僧 (◕‿◕)
 
 ## ✨ 项目特色
 
