@@ -1,32 +1,13 @@
-# WordNest - 英语单词学习系统
-# Python依赖包列表
-
-# 核心Web框架
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Werkzeug==2.3.7
-
-# 数据库相关
 SQLAlchemy>=1.4.0
-
-# HTTP请求库
 requests>=2.31.0
-
-# 环境变量管理
 python-dotenv==1.0.0
-
-# 文本转语音 (可选功能)
 pyttsx3>=2.90
-
-# AI模型接口 (可选功能，需要本地安装Ollama)
-# 访问 https://ollama.com/ 了解如何安装Ollama
-# ollama>=0.1.0
-
-# 生产环境部署 (可选)
+ollama>=0.1.0
 gunicorn==21.2.0
-
-# 开发工具 (开发时可选安装)
-# pytest>=7.0.0
-# pytest-flask>=1.2.0
-# black>=23.0.0
-# flake8>=6.0.0
+pytest>=7.0.0
+pytest-flask>=1.2.0
+black>=23.0.0
+flake8>=6.0.0
