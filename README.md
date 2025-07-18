@@ -1,10 +1,10 @@
-<div align="center">
-  <img src="image/LOGO.jpg" alt="WordNest Logo" width="150"/>
-</div>
-
 # WordNest 🎯
 
 你的专属英语单词手账！(｡♥‿♥｡) 一个基于Flask的现代化个人单词学习系统，让你把那些"死活记不住"的单词都收进小窝里慢慢消化~ 支持AI智能助手、知识图谱可视化等黑科技，让背单词从此不再是噩梦！✧(≖ ◡ ≖✿)
+
+<div align="center">
+  <img src="image/LOGO.jpg" alt="WordNest Logo" width="200"/>
+</div>
 
 ![GitHub license](https://img.shields.io/github/license/wink-wink-wink555/WordNest)
 ![Python version](https://img.shields.io/badge/python-3.8%2B-blue)
