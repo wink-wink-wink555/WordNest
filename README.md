@@ -6,9 +6,13 @@
   <img src="image/LOGO.jpg" alt="WordNest Logo" width="200"/>
 </div>
 
+<div align="center">
+
 ![GitHub license](https://img.shields.io/github/license/wink-wink-wink555/WordNest)
 ![Python version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![Flask version](https://img.shields.io/badge/flask-2.3.3-green)
+
+</div>
 
 ## 💡 为什么做这个
 
