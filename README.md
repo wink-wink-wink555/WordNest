@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="images/LOGO.jpg" alt="WordNest Logo" width="150"/>
+  <img src="image/LOGO.jpg" alt="WordNest Logo" width="150"/>
 </div>
 
 # WordNest 🎯
