@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -16,47 +15,30 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
-# Flask
-instance/
-.webassets-cache
-
-# Virtual Environment
-.env
-.venv
 venv/
 ENV/
-
-# 环境变量文件
+env/
+.venv
 .env
-*.env
-
-# 数据库文件
+settings.json
+instance/
 *.db
 *.sqlite
 *.sqlite3
-instance/words.db
-
-# 配置文件中的敏感信息
-settings.json
-
-# 日志文件
-*.log
-logs/
-
-# 临时文件
-temp/
-tmp/
-
-# IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
-
-# OS
+*~
 .DS_Store
-Thumbs.db 
+*.log
+*.tmp
+temp/
+tmp/
+.coverage
+htmlcov/
+.pytest_cache/
