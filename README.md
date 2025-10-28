@@ -157,12 +157,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. **配置AI助手**（想要AI功能就配置一下哦~）
+4. **配置环境变量**（想要AI功能就配置一下哦~）
 ```bash
-# 复制示例配置文件
-cp settings.example.json settings.json
+# Windows用户
+copy env.example .env
 
-# 编辑 app.py 文件，添加你的DeepSeek API密钥（第17行）
+# macOS/Linux用户
+cp env.example .env
+
+# 编辑 .env 文件，填入你的DeepSeek API密钥
+# DEEPSEEK_API_KEY=你的密钥
+# 获取地址: https://platform.deepseek.com/
 ```
 
 5. **启动你的单词小窝** ✨
@@ -218,27 +223,80 @@ python app.py
 
 ## 🏗️ 项目架构
 
+本项目采用**现代化分层架构设计**，代码结构清晰，易于维护和扩展：
+
 ```
 WordNest/
-├── 📄 app.py                    # Flask主应用
-├── 🗃️ models.py                 # 数据库模型
-├── 📁 static/                   # 静态资源
-│   ├── 🎨 style.css            # 样式文件
-│   ├── ⚡ script.js            # 主要脚本
-│   └── 🕸️ js/vis-network.min.js # 图谱可视化
-├── 📁 templates/                # HTML模板
-│   ├── 🏠 index.html           # 主页面
-│   ├── 📋 word_list.html       # 词汇列表
-│   ├── ➕ add_word.html        # 添加单词
-│   ├── ➕ add_definition.html   # 添加释义
-│   ├── ✏️ edit_word.html       # 编辑单词
-│   └── 🕸️ knowledge_graph.html # 知识图谱
-├── 📁 instance/                 # 数据库文件夹
-├── ⚙️ settings.json             # 应用设置
-├── 📋 requirements.txt          # 依赖列表
-├── 🔒 .env.example             # 环境变量示例
-└── 📄 README.md                # 项目说明
+├── 📄 app.py                    # Flask应用主入口（应用工厂模式）
+├── ⚙️ config.py                 # 应用配置管理
+├── 🗃️ models.py                 # 数据库模型定义
+│
+├── 📁 routes/                   # 🎯 路由层（BluePrints）
+│   ├── __init__.py              # 路由模块初始化
+│   ├── word_routes.py           # 单词CRUD + 自测功能
+│   ├── graph_routes.py          # 知识图谱展示
+│   └── api_routes.py            # RESTful API接口
+│
+├── 📁 services/                 # 💼 服务层（业务逻辑）
+│   ├── __init__.py              # 服务模块初始化
+│   ├── word_service.py          # 单词业务逻辑
+│   ├── llm_service.py           # LLM AI服务
+│   └── graph_service.py         # 知识图谱服务
+│
+├── 📁 utils/                    # 🛠️ 工具模块
+│   ├── __init__.py              # 工具模块初始化
+│   ├── constants.py             # 常量定义
+│   └── settings.py              # 设置文件管理
+│
+├── 📁 static/                   # 🎨 静态资源
+│   ├── style.css                # 样式文件
+│   ├── script.js                # 主要脚本
+│   └── js/
+│       └── vis-network.min.js   # 图谱可视化库
+│
+├── 📁 templates/                # 🖼️ HTML模板
+│   ├── index.html               # 主页面（单词自测）
+│   ├── word_list.html           # 词汇列表
+│   ├── add_word.html            # 添加单词
+│   ├── add_definition.html      # 添加释义
+│   ├── edit_word.html           # 编辑单词
+│   └── knowledge_graph.html     # 知识图谱
+│
+├── 📁 instance/                 # 🗄️ 数据库文件夹
+│   └── words.db                 # SQLite数据库
+│
+├── ⚙️ settings.json             # 应用设置（本地生成）
+├── 📋 settings.example.json     # 设置模板
+├── 🔒 env.example               # 环境变量示例
+├── 🚫 .gitignore                # Git忽略规则
+├── 📋 requirements.txt          # Python依赖
+└── 📖 README.md                 # 项目文档
 ```
+
+### 🎯 架构亮点
+
+**三层架构模式 - 关注点分离**
+
+1. **路由层（Routes）**
+   - 处理HTTP请求和响应
+   - 参数验证和错误处理
+   - 使用Flask Blueprint模块化管理
+
+2. **服务层（Services）**
+   - 封装核心业务逻辑
+   - 可复用的功能模块
+   - 与路由层解耦，提高可测试性
+
+3. **数据层（Models）**
+   - SQLAlchemy ORM数据模型
+   - 数据库操作封装
+   - 支持多种数据库切换
+
+**设计优势** ✨
+- 📦 **模块化**：各层职责清晰，易于理解
+- 🔧 **可维护**：代码组织合理，修改影响小
+- 🧪 **可测试**：业务逻辑独立，方便单元测试
+- 🚀 **可扩展**：添加新功能只需扩展对应层
 
 ## 🔧 AI魔法配置
 
@@ -258,11 +316,12 @@ WordNest/
    ```
 
 2. **配置DeepSeek API** (知识图谱魔法师)
-   ```python
-   # 编辑 app.py 文件第17行，替换为你的DeepSeek密钥
-   DEEPSEEK_API_KEY = "你的API密钥放这里"
+   ```bash
+   # 编辑 .env 文件，添加你的DeepSeek密钥
+   DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxx
    
    # 不知道怎么获取？访问 https://platform.deepseek.com/
+   # 注册后在API管理页面创建密钥
    ```
 
 ### 数据库配置
@@ -276,6 +335,34 @@ DATABASE_URI=postgresql://username:password@localhost/wordnest
 # MySQL示例  
 DATABASE_URI=mysql://username:password@localhost/wordnest
 ```
+
+### 🔐 安全配置
+
+**重要提示** ⚠️
+
+1. **不要提交敏感信息**
+   - `.env` 文件已在 `.gitignore` 中
+   - 切勿将API密钥提交到Git仓库
+   - 使用环境变量管理所有敏感配置
+
+2. **API密钥保护**
+   ```bash
+   # ✅ 正确做法：使用环境变量
+   export DEEPSEEK_API_KEY=your-key
+   
+   # ❌ 错误做法：硬编码在代码中
+   # DEEPSEEK_API_KEY = "sk-xxxxx"  # 千万别这样！
+   ```
+
+3. **生产环境配置**
+   ```bash
+   # 设置为生产模式
+   export FLASK_ENV=production
+   export DEBUG=False
+   
+   # 使用强随机密钥
+   export SECRET_KEY=$(python -c 'import secrets; print(secrets.token_hex(32))')
+   ```
 
 ### 部署配置
 
@@ -313,6 +400,42 @@ gunicorn -w 4 -b 0.0.0.0:8000 app:app
    black .
    flake8 .
    ```
+
+### 🏗️ 架构开发指南
+
+如果您想为项目添加新功能，请遵循以下分层架构原则：
+
+**1. 添加新的业务功能**
+```
+步骤1: 在 services/ 中创建或扩展服务类
+步骤2: 在 routes/ 中添加对应的路由处理
+步骤3: 如需新页面，在 templates/ 添加模板
+步骤4: 更新 config.py（如有新配置项）
+```
+
+**2. 代码组织原则**
+- ✅ **路由层**：只处理HTTP请求/响应，调用服务层
+- ✅ **服务层**：包含所有业务逻辑，可复用
+- ✅ **数据层**：只负责数据模型和数据库操作
+- ❌ **避免**：在路由中直接操作数据库
+- ❌ **避免**：在服务层处理HTTP请求对象
+
+**3. 示例：添加单词收藏功能**
+```python
+# 步骤1: services/word_service.py
+class WordService:
+    @staticmethod
+    def toggle_favorite(word_str):
+        # 业务逻辑
+        pass
+
+# 步骤2: routes/word_routes.py
+@word_bp.route('/favorite/<word>', methods=['POST'])
+def favorite_word(word):
+    if WordService.toggle_favorite(word):
+        return jsonify({'success': True})
+    return jsonify({'error': '操作失败'}), 400
+```
 
 ### 提交规范
 
