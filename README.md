@@ -159,11 +159,11 @@ pip install -r requirements.txt
 
 4. **配置API密钥**（想要AI功能就配置一下哦~）
 
-   项目使用 `config.py` 进行配置管理。编辑 `config.py` 文件，将默认值改为你的配置：
-   ```python
-   DEEPSEEK_API_KEY = '你的密钥'
-   OLLAMA_MODEL = 'qwen2.5:3b'
-   ```
+项目使用 `config.py` 进行配置管理。编辑 `config.py` 文件，将默认值改为你的配置：
+```python
+DEEPSEEK_API_KEY = '你的密钥'
+OLLAMA_MODEL = 'qwen2.5:3b'
+```
 
 5. **启动你的单词小窝** ✨
 ```bash
