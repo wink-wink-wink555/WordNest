@@ -22,7 +22,6 @@ venv/
 ENV/
 env/
 .venv
-.env
 settings.json
 instance/
 *.db
