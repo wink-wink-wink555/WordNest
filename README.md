@@ -157,18 +157,36 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. **配置环境变量**（想要AI功能就配置一下哦~）
-```bash
-# Windows用户
-copy env.example .env
+4. **配置API密钥**（想要AI功能就配置一下哦~）
 
-# macOS/Linux用户
-cp env.example .env
+   项目使用 `config.py` 进行配置管理。你可以通过以下两种方式配置：
 
-# 编辑 .env 文件，填入你的DeepSeek API密钥
-# DEEPSEEK_API_KEY=你的密钥
-# 获取地址: https://platform.deepseek.com/
-```
+   **方式1：使用系统环境变量（推荐）**
+   ```bash
+   # Windows用户（PowerShell）
+   $env:DEEPSEEK_API_KEY="你的密钥"
+   $env:OLLAMA_MODEL="qwen2.5:3b"
+
+   # Windows用户（CMD）
+   set DEEPSEEK_API_KEY=你的密钥
+   set OLLAMA_MODEL=qwen2.5:3b
+
+   # macOS/Linux用户
+   export DEEPSEEK_API_KEY="你的密钥"
+   export OLLAMA_MODEL="qwen2.5:3b"
+   
+   # 获取DeepSeek密钥: https://platform.deepseek.com/
+   ```
+
+   **方式2：直接修改 `config.py` 文件（仅限开发环境）**
+   
+   编辑 `config.py` 文件，将默认值改为你的配置：
+   ```python
+   DEEPSEEK_API_KEY = '你的密钥'
+   OLLAMA_MODEL = 'qwen2.5:3b'
+   ```
+   
+   ⚠️ **注意**：如果使用方式2，不要将包含真实密钥的 `config.py` 提交到Git！
 
 5. **启动你的单词小窝** ✨
 ```bash
@@ -267,7 +285,6 @@ WordNest/
 │
 ├── ⚙️ settings.json             # 应用设置（本地生成）
 ├── 📋 settings.example.json     # 设置模板
-├── 🔒 env.example               # 环境变量示例
 ├── 🚫 .gitignore                # Git忽略规则
 ├── 📋 requirements.txt          # Python依赖
 └── 📖 README.md                 # 项目文档
@@ -307,18 +324,22 @@ WordNest/
 让AI在你的电脑里安家，生成专属例句和学习笔记：
 
 1. **安装Ollama** (本地AI的家园)
-   ```bash
+```bash
    # 访问 https://ollama.com/ 下载安装包
    # 就像安装普通软件一样，点点点就好 (◡‿◡)
    
    # 安装完后，下载超聪明的Qwen模型
-   ollama pull qwen2.5:3b
-   ```
+ollama pull qwen2.5:3b
+```
 
 2. **配置DeepSeek API** (知识图谱魔法师)
    ```bash
-   # 编辑 .env 文件，添加你的DeepSeek密钥
-   DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxx
+   # 设置DeepSeek API密钥（使用环境变量）
+   # Windows (PowerShell)
+   $env:DEEPSEEK_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxx"
+   
+   # macOS/Linux
+   export DEEPSEEK_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxx"
    
    # 不知道怎么获取？访问 https://platform.deepseek.com/
    # 注册后在API管理页面创建密钥
@@ -341,17 +362,17 @@ DATABASE_URI=mysql://username:password@localhost/wordnest
 **重要提示** ⚠️
 
 1. **不要提交敏感信息**
-   - `.env` 文件已在 `.gitignore` 中
-   - 切勿将API密钥提交到Git仓库
-   - 使用环境变量管理所有敏感配置
+   - 切勿将包含真实API密钥的 `config.py` 提交到Git仓库
+   - 推荐使用系统环境变量管理所有敏感配置
+   - 如果修改了 `config.py` 中的默认值，请不要提交这些更改
 
 2. **API密钥保护**
    ```bash
-   # ✅ 正确做法：使用环境变量
+   # ✅ 正确做法：使用系统环境变量
    export DEEPSEEK_API_KEY=your-key
    
-   # ❌ 错误做法：硬编码在代码中
-   # DEEPSEEK_API_KEY = "sk-xxxxx"  # 千万别这样！
+   # ❌ 错误做法：在 config.py 中硬编码后提交到Git
+   # 千万别把真实密钥提交到仓库！
    ```
 
 3. **生产环境配置**
