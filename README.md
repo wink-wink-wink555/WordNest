@@ -8,9 +8,10 @@
 
 <div align="center">
 
-![GitHub license](https://img.shields.io/github/license/wink-wink-wink555/WordNest)
-![Python version](https://img.shields.io/badge/python-3.8%2B-blue)
-![Flask version](https://img.shields.io/badge/flask-2.3.3-green)
+![WordNest Logo](https://img.shields.io/badge/WordNest-✨_Build_your_own_dictionary-ff69b4?style=for-the-badge)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-2.3.3-green?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 </div>
 
