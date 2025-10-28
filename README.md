@@ -159,7 +159,7 @@ pip install -r requirements.txt
 
 4. **配置API密钥**（想要AI功能就配置一下哦~）
 
-项目使用 `config.py` 进行配置管理。编辑 `config.py` 文件，将默认值改为你的配置：
+  项目使用 `config.py` 进行配置管理。编辑 `config.py` 文件，将默认值改为你的配置：
 ```python
 DEEPSEEK_API_KEY = '你的密钥'
 OLLAMA_MODEL = 'qwen2.5:3b'
@@ -302,25 +302,20 @@ WordNest/
 
 1. **安装Ollama** (本地AI的家园)
 ```bash
-   # 访问 https://ollama.com/ 下载安装包
-   # 就像安装普通软件一样，点点点就好 (◡‿◡)
+# 访问 https://ollama.com/ 下载安装包
+# 就像安装普通软件一样，点点点就好 (◡‿◡)
    
-   # 安装完后，下载超聪明的Qwen模型
+# 安装完后，下载超聪明的Qwen模型
 ollama pull qwen2.5:3b
 ```
 
 2. **配置DeepSeek API** (知识图谱魔法师)
-   ```bash
-   # 设置DeepSeek API密钥（使用环境变量）
-   # Windows (PowerShell)
-   $env:DEEPSEEK_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxx"
-   
-   # macOS/Linux
-   export DEEPSEEK_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxx"
-   
-   # 不知道怎么获取？访问 https://platform.deepseek.com/
-   # 注册后在API管理页面创建密钥
-   ```
+
+编辑 `config.py` 文件，将默认值改为你的配置~
+
+```python
+DEEPSEEK_API_KEY = '你的密钥'
+```
 
 ### 数据库配置
 
