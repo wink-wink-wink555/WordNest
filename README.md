@@ -159,34 +159,11 @@ pip install -r requirements.txt
 
 4. **配置API密钥**（想要AI功能就配置一下哦~）
 
-   项目使用 `config.py` 进行配置管理。你可以通过以下两种方式配置：
-
-   **方式1：使用系统环境变量（推荐）**
-   ```bash
-   # Windows用户（PowerShell）
-   $env:DEEPSEEK_API_KEY="你的密钥"
-   $env:OLLAMA_MODEL="qwen2.5:3b"
-
-   # Windows用户（CMD）
-   set DEEPSEEK_API_KEY=你的密钥
-   set OLLAMA_MODEL=qwen2.5:3b
-
-   # macOS/Linux用户
-   export DEEPSEEK_API_KEY="你的密钥"
-   export OLLAMA_MODEL="qwen2.5:3b"
-   
-   # 获取DeepSeek密钥: https://platform.deepseek.com/
-   ```
-
-   **方式2：直接修改 `config.py` 文件（仅限开发环境）**
-   
-   编辑 `config.py` 文件，将默认值改为你的配置：
+   项目使用 `config.py` 进行配置管理。编辑 `config.py` 文件，将默认值改为你的配置：
    ```python
    DEEPSEEK_API_KEY = '你的密钥'
    OLLAMA_MODEL = 'qwen2.5:3b'
    ```
-   
-   ⚠️ **注意**：如果使用方式2，不要将包含真实密钥的 `config.py` 提交到Git！
 
 5. **启动你的单词小窝** ✨
 ```bash
