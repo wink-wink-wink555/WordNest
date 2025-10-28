@@ -329,34 +329,6 @@ DATABASE_URI=postgresql://username:password@localhost/wordnest
 DATABASE_URI=mysql://username:password@localhost/wordnest
 ```
 
-### 🔐 安全配置
-
-**重要提示** ⚠️
-
-1. **不要提交敏感信息**
-   - 切勿将包含真实API密钥的 `config.py` 提交到Git仓库
-   - 推荐使用系统环境变量管理所有敏感配置
-   - 如果修改了 `config.py` 中的默认值，请不要提交这些更改
-
-2. **API密钥保护**
-   ```bash
-   # ✅ 正确做法：使用系统环境变量
-   export DEEPSEEK_API_KEY=your-key
-   
-   # ❌ 错误做法：在 config.py 中硬编码后提交到Git
-   # 千万别把真实密钥提交到仓库！
-   ```
-
-3. **生产环境配置**
-   ```bash
-   # 设置为生产模式
-   export FLASK_ENV=production
-   export DEBUG=False
-   
-   # 使用强随机密钥
-   export SECRET_KEY=$(python -c 'import secrets; print(secrets.token_hex(32))')
-   ```
-
 ### 部署配置
 
 生产环境部署使用Gunicorn：
