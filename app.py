@@ -25,10 +25,10 @@ def create_app(config_name=None):
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'default')
     app.config.from_object(config[config_name])
-    
+
     # 初始化数据库
     db.init_app(app)
-    
+
     # 注册蓝图
     from routes import register_blueprints
     register_blueprints(app)
