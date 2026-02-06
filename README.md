@@ -105,7 +105,7 @@
 随时创建新的单词列表：
 
 <div align="center">
-<img src="screenshots/10.png" alt="创建单词列表" width="600"/>
+<img src="screenshots/11.png" alt="创建单词列表" width="600"/>
 <p><em>多单词列表支持~随时创建新的单词列表！</em></p>
 </div>
 
@@ -129,7 +129,7 @@ DeepSeek API绘制的词汇关联图谱：
 
 <div align="center">
 <img src="screenshots/8.png" alt="添加新单词界面" width="600"/>
-<p><em>支持多词性、多释义，还有AI生成例句功能哦！</em></p>
+<p><em>支持多词性、多释义，支持AI一键填充哦！</em></p>
 </div>
 
 ### 🌙 夜间模式
@@ -146,7 +146,7 @@ DeepSeek API绘制的词汇关联图谱：
 
 - Python 3.8+ （现在的电脑基本都支持啦~ ）
 - 2GB 可用磁盘空间 （给你的单词们一个温暖的家）
-- （可选）Ollama 用于AI魔法功能 ✨
+- DeepSeek API 用于AI魔法功能 ✨
 
 ### 安装步骤
 
@@ -178,7 +178,6 @@ pip install -r requirements.txt
   
 ```python
 DEEPSEEK_API_KEY = '你的密钥'
-OLLAMA_MODEL = 'qwen2.5:3b'
 ```
 
 5. **启动你的单词小窝** ✨
