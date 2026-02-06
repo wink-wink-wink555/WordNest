@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>单词列表 - 单词自测系统</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- 引入Inter字体（苹果风格的开源字体）和思源黑体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         /* 首字母索引样式 */
         .alphabet-index {
@@ -72,6 +73,51 @@
         /* 简单视图下的单词单元格样式 */
         .word-table.simple-view .word-cell {
             text-align: center;
+        }
+        
+        /* 单词单元格固定样式 - 超长单词显示省略号 */
+        .word-cell {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+        
+        /* 单词tooltip气泡样式 - 仅在单词被截断时显示 */
+        .word-cell[data-truncated="true"] {
+            cursor: help;
+        }
+        
+        /* 动态创建的tooltip样式 */
+        .word-tooltip {
+            position: fixed;
+            background: linear-gradient(135deg, #4a6cf7 0%, #3951c6 100%);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 16px;
+            font-size: 16px;
+            white-space: nowrap;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(74, 108, 247, 0.4);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .word-tooltip.show {
+            opacity: 1;
+        }
+        
+        /* 暗色模式下的tooltip */
+        .dark-mode .word-tooltip {
+            background: linear-gradient(135deg, #6d8fff 0%, #5273ff 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(109, 143, 255, 0.5);
+        }
+        
+        /* 简单视图下的单词样式 */
+        .word-table.simple-view .word-cell {
+            max-width: 100%;
         }
         
         /* 优化按钮栏样式 */
@@ -354,11 +400,13 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
             box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
             border-radius: 15px 15px 0 0;
             transform: translateY(100%);
-            transition: transform 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             z-index: 1000;
             max-height: 70vh;
             overflow-y: auto;
@@ -366,6 +414,20 @@
         
         .word-details-popup.show {
             transform: translateY(0);
+            animation: slideUpBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        /* 底部弹窗弹出动画 */
+        @keyframes slideUpBounce {
+            0% {
+                transform: translateY(100%);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+            100% {
+                transform: translateY(0);
+            }
         }
         
         .word-details-content {
@@ -542,6 +604,333 @@
         
         /* 知识图谱弹窗样式 - 已删除 */
         
+        /* 夜间模式下单词详情弹窗的毛玻璃效果 */
+        .dark-mode .word-details-popup {
+            background-color: rgba(30, 30, 30, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        
+        .dark-mode .modal-content {
+            background-color: #2d2d2d;
+            color: #e0e0e0;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .dark-mode .modal-header {
+            border-bottom-color: #444;
+        }
+        
+        .modal-body {
+            padding: 25px;
+        }
+        
+        .close-modal-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .close-modal-btn:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .dark-mode .close-modal-btn:hover {
+            background-color: #3d3d3d;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 列表管理样式 */
+        .list-manage-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        
+        .dark-mode .list-manage-section h3 {
+            color: #e0e0e0;
+        }
+        
+        .form-input {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+        }
+        
+        .dark-mode .form-input {
+            background-color: #3d3d3d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(74, 108, 247, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .btn-danger {
+            background-color: #ff4757;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #ee5a6f;
+        }
+        
+        .dark-mode .btn-secondary {
+            background-color: #3d3d3d;
+            color: #e0e0e0;
+        }
+        
+        .dark-mode .btn-secondary:hover {
+            background-color: #4d4d4d;
+        }
+        
+        .lists-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 15px;
+            min-height: 72px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .list-item:hover {
+            background-color: #f8f9fa;
+            border-color: var(--primary-color);
+        }
+        
+        .dark-mode .list-item {
+            border-color: #444;
+            background-color: #3d3d3d;
+        }
+        
+        .dark-mode .list-item:hover {
+            background-color: #4d4d4d;
+        }
+        
+        .list-item.active {
+            background-color: #f0f4ff;
+            border-color: var(--primary-color);
+        }
+        
+        .dark-mode .list-item.active {
+            background-color: #2d3d5d;
+        }
+        
+        .list-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            transition: all 0.2s;
+            padding: 8px;
+            margin: -8px;
+            border-radius: 6px;
+            min-height: 40px;
+        }
+        
+        /* 可点击的列表信息区域的悬停效果 */
+        .list-item:not(.active) .list-info:hover {
+            background-color: rgba(74, 108, 247, 0.08);
+            transform: translateX(3px);
+        }
+        
+        .list-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            position: relative;
+        }
+        
+        /* 当前列表的名称颜色 */
+        .list-item.active .list-name {
+            color: var(--primary-color);
+        }
+        
+        /* 当前列表的指示器 */
+        .list-item.active .list-name::before {
+            content: '✓';
+            display: inline-block;
+            margin-right: 8px;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .dark-mode .list-name {
+            color: #e0e0e0;
+        }
+        
+        .dark-mode .list-item.active .list-name {
+            color: #8ecdff;
+        }
+        
+        .list-word-count {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .dark-mode .list-word-count {
+            color: #999;
+        }
+        
+        
+        .list-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            min-height: 40px;
+        }
+        
+        .list-action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            height: 36px;
+        }
+        
+        /* 重命名按钮 - 橙色警告色 */
+        .list-rename-btn {
+            background-color: #ffa726;
+            color: white;
+        }
+        
+        .list-rename-btn:hover {
+            background-color: #fb8c00;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(255, 167, 38, 0.3);
+        }
+        
+        /* 删除按钮 - 红色危险色 */
+        .list-delete-btn {
+            background-color: #ef5350;
+            color: white;
+        }
+        
+        .list-delete-btn:hover {
+            background-color: #e53935;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(239, 83, 80, 0.3);
+        }
+        
+        /* 夜间模式下的按钮样式 */
+        .dark-mode .list-rename-btn {
+            background-color: #ff9800;
+            color: white;
+        }
+        
+        .dark-mode .list-rename-btn:hover {
+            background-color: #f57c00;
+        }
+        
+        .dark-mode .list-delete-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .dark-mode .list-delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        
     </style>
 </head>
 <body>
@@ -582,7 +971,19 @@
 
     <div class="container">
         <div class="header-section">
-            <h1>单词列表</h1>
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <h1 style="margin: 0;">单词列表</h1>
+                <span id="currentListName" style="color: #4a6cf7; font-size: 18px; font-weight: 500;">
+                    (<span id="listNameText">加载中...</span>)
+                </span>
+                <button id="manageListsBtn" class="action-btn" style="padding: 6px 12px; font-size: 14px;" title="管理列表">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    管理列表
+                </button>
+            </div>
             <div class="search-section">
                 <div class="search-box">
                     <div class="input-container">
@@ -717,6 +1118,43 @@
     <!-- 知识图谱弹出框 -->
     <!-- 删除了知识图谱弹窗代码 -->
     
+    <!-- 列表管理弹窗 -->
+    <div id="listManageModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 style="margin: 0;">管理单词列表</h2>
+                <button type="button" id="closeListManageModal" class="close-modal-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- 新建列表区域（默认隐藏） -->
+                <div id="newListSection" class="list-manage-section" style="display: none; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+                    <h3>新建列表</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newListNameInput" placeholder="输入新列表名称" class="form-input" style="flex: 1;">
+                        <button type="button" id="confirmCreateListBtn" class="btn btn-primary">创建</button>
+                        <button type="button" id="cancelCreateListBtn" class="btn" style="background-color: #e0e0e0;">取消</button>
+                    </div>
+                </div>
+                
+                <!-- 现有列表区域 -->
+                <div class="list-manage-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">我的列表</h3>
+                        <button type="button" id="showNewListBtn" class="btn btn-primary" style="display: flex; align-items: center; gap: 5px; padding: 6px 12px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            新建
+                        </button>
+                    </div>
+                    <div id="listsContainer" class="lists-container">
+                        <div style="text-align: center; padding: 20px; color: #999;">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- 添加回到顶部按钮 -->
     <div id="backToTopBtn" class="back-to-top-btn hidden">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
@@ -760,6 +1198,406 @@
         })();
 
         document.addEventListener('DOMContentLoaded', function() {
+            // ===== 单词截断检测功能 =====
+            // 创建tooltip元素
+            const tooltip = document.createElement('div');
+            tooltip.className = 'word-tooltip';
+            document.body.appendChild(tooltip);
+            
+            // 检测单词是否被截断，如果是则显示tooltip
+            function checkWordCellsTruncation() {
+                const wordCells = document.querySelectorAll('.word-cell');
+                wordCells.forEach(cell => {
+                    // 获取单词文本
+                    const wordText = cell.textContent.trim();
+                    
+                    // 检查是否被截断
+                    if (cell.scrollWidth > cell.clientWidth) {
+                        cell.setAttribute('data-truncated', 'true');
+                        cell.setAttribute('data-full-word', wordText);
+                        
+                        // 添加鼠标事件
+                        cell.addEventListener('mouseenter', showTooltip);
+                        cell.addEventListener('mouseleave', hideTooltip);
+                    } else {
+                        cell.removeAttribute('data-truncated');
+                        cell.removeAttribute('data-full-word');
+                        cell.removeEventListener('mouseenter', showTooltip);
+                        cell.removeEventListener('mouseleave', hideTooltip);
+                    }
+                });
+            }
+            
+            // 显示tooltip
+            function showTooltip(e) {
+                const cell = e.currentTarget;
+                const fullWord = cell.getAttribute('data-full-word');
+                if (!fullWord) return;
+                
+                // 设置tooltip内容
+                tooltip.textContent = fullWord;
+                
+                // 获取单元格位置
+                const rect = cell.getBoundingClientRect();
+                
+                // 获取行的位置信息
+                const row = cell.closest('tr');
+                const rowRect = row ? row.getBoundingClientRect() : rect;
+                
+                // 定位tooltip（在单元格右侧，垂直居中对齐行）
+                tooltip.style.left = rect.right + 10 + 'px';
+                tooltip.style.top = rowRect.top + rowRect.height / 2 + 'px';
+                tooltip.style.transform = 'translateY(-50%)';
+                
+                // 显示tooltip
+                requestAnimationFrame(() => {
+                    tooltip.classList.add('show');
+                });
+            }
+            
+            // 隐藏tooltip
+            function hideTooltip() {
+                tooltip.classList.remove('show');
+            }
+            
+            // 页面加载时检测
+            setTimeout(checkWordCellsTruncation, 100);
+            
+            // 使用MutationObserver监听DOM变化
+            const tableObserver = new MutationObserver(function(mutations) {
+                setTimeout(checkWordCellsTruncation, 100);
+            });
+            
+            const wordTableBody = document.getElementById('wordTableBody');
+            if (wordTableBody) {
+                tableObserver.observe(wordTableBody, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+            
+            // ===== 列表管理功能 =====
+            const manageListsBtn = document.getElementById('manageListsBtn');
+            const listManageModal = document.getElementById('listManageModal');
+            const closeListManageModal = document.getElementById('closeListManageModal');
+            const showNewListBtn = document.getElementById('showNewListBtn');
+            const newListSection = document.getElementById('newListSection');
+            const confirmCreateListBtn = document.getElementById('confirmCreateListBtn');
+            const cancelCreateListBtn = document.getElementById('cancelCreateListBtn');
+            const newListNameInput = document.getElementById('newListNameInput');
+            const listsContainer = document.getElementById('listsContainer');
+            const listNameText = document.getElementById('listNameText');
+            
+            // 加载当前列表名称
+            function loadCurrentListName() {
+                fetch('/api/lists/current')
+                    .then(response => response.json())
+                    .then(data => {
+                        listNameText.textContent = data.current_list;
+                    })
+                    .catch(error => {
+                        console.error('获取当前列表失败:', error);
+                        listNameText.textContent = '未知';
+                    });
+            }
+            
+            // 页面加载时获取当前列表名称
+            loadCurrentListName();
+            
+            // 打开列表管理弹窗
+            manageListsBtn.addEventListener('click', function() {
+                listManageModal.style.display = 'flex';
+                newListSection.style.display = 'none'; // 隐藏新建区域
+                newListNameInput.value = ''; // 清空输入框
+                loadAllLists();
+            });
+            
+            // 关闭列表管理弹窗
+            closeListManageModal.addEventListener('click', function() {
+                listManageModal.style.display = 'none';
+                newListSection.style.display = 'none'; // 隐藏新建区域
+            });
+            
+            // 点击弹窗外部关闭
+            listManageModal.addEventListener('click', function(e) {
+                if (e.target === listManageModal) {
+                    listManageModal.style.display = 'none';
+                    newListSection.style.display = 'none'; // 隐藏新建区域
+                }
+            });
+            
+            // 显示新建列表区域
+            showNewListBtn.addEventListener('click', function() {
+                newListSection.style.display = 'block';
+                newListNameInput.value = '';
+                newListNameInput.focus();
+            });
+            
+            // 取消新建列表
+            cancelCreateListBtn.addEventListener('click', function() {
+                newListSection.style.display = 'none';
+                newListNameInput.value = '';
+            });
+            
+            // 加载所有列表
+            function loadAllLists() {
+                listsContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">加载中...</div>';
+                
+                fetch('/api/lists')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayLists(data.lists, data.current_list);
+                    })
+                    .catch(error => {
+                        console.error('获取列表失败:', error);
+                        listsContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff4757;">加载失败，请刷新重试</div>';
+                    });
+            }
+            
+            // 显示列表
+            function displayLists(lists, currentList) {
+                if (!lists || lists.length === 0) {
+                    listsContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">暂无列表</div>';
+                    return;
+                }
+                
+                listsContainer.innerHTML = '';
+                
+                lists.forEach(list => {
+                    const listItem = document.createElement('div');
+                    listItem.className = 'list-item' + (list.name === currentList ? ' active' : '');
+                    
+                    const listInfo = document.createElement('div');
+                    listInfo.className = 'list-info';
+                    
+                    const listName = document.createElement('div');
+                    listName.className = 'list-name';
+                    listName.textContent = list.name;
+                    listInfo.appendChild(listName);
+                    
+                    const wordCount = document.createElement('div');
+                    wordCount.className = 'list-word-count';
+                    wordCount.textContent = `${list.word_count} 个单词`;
+                    listInfo.appendChild(wordCount);
+                    
+                    // 使整个listInfo区域可点击来切换列表（仅非当前列表）
+                    if (list.name !== currentList) {
+                        listInfo.style.cursor = 'pointer';
+                        listInfo.onclick = () => switchToList(list.name);
+                    }
+                    
+                    listItem.appendChild(listInfo);
+                    
+                    const actions = document.createElement('div');
+                    actions.className = 'list-actions';
+                    
+                    // 重命名按钮 - 使用橙色/警告色
+                    const renameBtn = document.createElement('button');
+                    renameBtn.className = 'list-action-btn list-rename-btn';
+                    renameBtn.textContent = '重命名';
+                    renameBtn.onclick = (e) => {
+                        e.stopPropagation(); // 防止触发行点击事件
+                        renameList(list.name);
+                    };
+                    actions.appendChild(renameBtn);
+                    
+                    // 删除按钮 - 使用红色/危险色
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'list-action-btn list-delete-btn';
+                    deleteBtn.textContent = '删除';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation(); // 防止触发行点击事件
+                        deleteList(list.name, list.word_count);
+                    };
+                    actions.appendChild(deleteBtn);
+                    
+                    listItem.appendChild(actions);
+                    listsContainer.appendChild(listItem);
+                });
+            }
+            
+            // 确认创建新列表
+            confirmCreateListBtn.addEventListener('click', function() {
+                const listName = newListNameInput.value.trim();
+                
+                if (!listName) {
+                    alert('请输入列表名称');
+                    return;
+                }
+                
+                // 验证列表名称（不能包含非法字符）
+                const invalidChars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
+                for (const char of invalidChars) {
+                    if (listName.includes(char)) {
+                        alert(`列表名称不能包含以下字符：/ \\ : * ? " < > |`);
+                        return;
+                    }
+                }
+                
+                fetch('/api/lists/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ list_name: listName, auto_switch: true })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (data.switched) {
+                            // 设置标志，通知其他页面列表已切换
+                            localStorage.setItem('listSwitched', Date.now().toString());
+                            alert(`列表"${listName}"创建成功！\n已自动切换到新列表，页面即将刷新。`);
+                            window.location.reload();
+                        } else {
+                            newListNameInput.value = '';
+                            newListSection.style.display = 'none';
+                            loadAllLists();
+                            alert('列表创建成功！');
+                        }
+                    } else {
+                        alert(data.error || '创建失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('创建列表失败:', error);
+                    alert('创建失败，请检查网络连接后重试');
+                });
+            });
+            
+            // 支持回车键创建列表
+            newListNameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    confirmCreateListBtn.click();
+                }
+            });
+            
+            // 切换列表
+            function switchToList(listName) {
+                if (!confirm(`确定要切换到列表"${listName}"吗？`)) {
+                    return;
+                }
+                
+                fetch('/api/lists/switch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ list_name: listName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 清除index页面的缓存状态，确保重新选词
+                        localStorage.removeItem('indexPageState');
+                        // 设置标志，通知其他页面列表已切换
+                        localStorage.setItem('listSwitched', Date.now().toString());
+                        alert('切换成功！页面即将刷新。');
+                        window.location.reload();
+                    } else {
+                        alert(data.error || '切换失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('切换列表失败:', error);
+                    alert('切换失败，请重试');
+                });
+            }
+            
+            // 重命名列表
+            function renameList(oldName) {
+                const newName = prompt(`请输入新的列表名称:`, oldName);
+                
+                if (!newName || newName.trim() === '') {
+                    return;
+                }
+                
+                if (newName === oldName) {
+                    return;
+                }
+                
+                // 验证列表名称（不能包含非法字符）
+                const invalidChars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
+                for (const char of invalidChars) {
+                    if (newName.includes(char)) {
+                        alert(`列表名称不能包含以下字符：/ \\ : * ? " < > |`);
+                        return;
+                    }
+                }
+                
+                fetch('/api/lists/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_name: oldName, new_name: newName.trim() })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // 设置标志，通知其他页面列表已切换（如果重命名的是当前列表）
+                        localStorage.setItem('listSwitched', Date.now().toString());
+                        loadAllLists();
+                        loadCurrentListName();
+                        alert('重命名成功！');
+                    } else {
+                        alert(data.error || '重命名失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('重命名列表失败:', error);
+                    alert('重命名失败，请检查网络连接后重试');
+                });
+            }
+            
+            // 删除列表
+            function deleteList(listName, wordCount) {
+                if (wordCount > 0) {
+                    alert(`列表"${listName}"包含 ${wordCount} 个单词，无法删除。\n请先删除列表中的所有单词。`);
+                    return;
+                }
+                
+                if (!confirm(`确定要删除列表"${listName}"吗？\n此操作不可恢复！`)) {
+                    return;
+                }
+                
+                fetch('/api/lists/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ list_name: listName })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // 设置标志，通知其他页面列表已切换（如果删除的是当前列表）
+                        if (data.switched) {
+                            localStorage.setItem('listSwitched', Date.now().toString());
+                            alert(`列表删除成功！\n已切换到列表"${data.new_current_list}"，页面即将刷新。`);
+                            window.location.reload();
+                        } else {
+                            loadAllLists();
+                            alert('列表删除成功！');
+                        }
+                    } else {
+                        alert(data.error || '删除失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('删除列表失败:', error);
+                    alert('删除失败，请检查网络连接后重试');
+                });
+            }
+            
+            // ===== 原有的单词列表功能 =====
             const wordActions = document.getElementById('wordActions');
             const selectedWordText = document.getElementById('selectedWordText');
             const editWordBtn = document.getElementById('editWordBtn');
@@ -1043,8 +1881,11 @@
                         // 保存当前搜索的单词，以便后续使用
                         const searchedWord = word;
                         
-                        // 取消之前的选择
-                        deselectAllRows();
+                        // 检查操作区域是否已经显示
+                        const isActionBarVisible = !wordActions.classList.contains('hidden');
+                        
+                        // 取消之前的选择（如果操作栏已显示，跳过动画）
+                        deselectAllRows(isActionBarVisible);
                         
                         // 如果是搜索模式，先清除搜索内容，显示所有行
                         if (isSearching) {
@@ -1073,9 +1914,10 @@
                         // 更新标注按钮状态
                         updateMarkButtonStatus(word);
                         
-                        // 显示操作区域
+                        // 显示操作区域（如果已经显示，直接更新内容）
                         selectedWordText.textContent = `已选择：${word}`;
                         wordActions.classList.remove('hidden');
+                        wordActions.classList.remove('hiding');
                         
                         // 在简单视图模式下隐藏顶部朗读按钮，因为详情页已提供该功能
                         const speakSelectedWordBtn = document.getElementById('speak-selected-word-btn');
@@ -1120,11 +1962,26 @@
             }
             
             // 取消所有行的选择
-            function deselectAllRows() {
+            function deselectAllRows(skipAnimation = false) {
                 document.querySelectorAll('.word-row').forEach(row => {
                     row.classList.remove('selected');
                 });
-                wordActions.classList.add('hidden');
+                
+                // 如果跳过动画，直接隐藏
+                if (skipAnimation) {
+                    // 不隐藏操作栏，只是取消选择状态
+                    // wordActions.classList.add('hidden');
+                } else {
+                    // 添加收回动画
+                    if (!wordActions.classList.contains('hidden')) {
+                        wordActions.classList.add('hiding');
+                        setTimeout(() => {
+                            wordActions.classList.add('hidden');
+                            wordActions.classList.remove('hiding');
+                        }, 400); // 动画持续时间
+                    }
+                }
+                
                 // 修改这里：不要在取消选择时自动隐藏单词详情弹窗
                 // wordDetailsPopup.classList.remove('show'); // 隐藏单词详情
                 selectedWord = null;
@@ -1199,14 +2056,15 @@
                         // 保证弹窗内容更新并显示
                         showWordDetailsAndEnsureVisible(prevWord);
                         
-                        // 更新选中状态
-                        deselectAllRows();
+                        // 更新选中状态（跳过收回动画）
+                        deselectAllRows(true);
                         selectWordRows(prevWord);
                         selectedWord = prevWord;
                         
                         // 显示顶部操作区域
                         selectedWordText.textContent = `已选择：${prevWord}`;
                         wordActions.classList.remove('hidden');
+                        wordActions.classList.remove('hiding');
                         
                         // 更新按钮链接
                         editWordBtn.href = `/edit_word/${prevWord}`;
@@ -1222,6 +2080,11 @@
                         
                         // 滚动到单词行位置使其居中
                         scrollToWordCentered(prevWord);
+                        
+                        // 简单模式下自动播放单词发音
+                        if (simpleViewMode) {
+                            speakWord(prevWord);
+                        }
                     }
                 }
             });
@@ -1236,14 +2099,15 @@
                         // 保证弹窗内容更新并显示
                         showWordDetailsAndEnsureVisible(nextWord);
                         
-                        // 更新选中状态
-                        deselectAllRows();
+                        // 更新选中状态（跳过收回动画）
+                        deselectAllRows(true);
                         selectWordRows(nextWord);
                         selectedWord = nextWord;
                         
                         // 显示顶部操作区域
                         selectedWordText.textContent = `已选择：${nextWord}`;
                         wordActions.classList.remove('hidden');
+                        wordActions.classList.remove('hiding');
                         
                         // 更新按钮链接
                         editWordBtn.href = `/edit_word/${nextWord}`;
@@ -1259,6 +2123,11 @@
                         
                         // 滚动到单词行位置使其居中
                         scrollToWordCentered(nextWord);
+                        
+                        // 简单模式下自动播放单词发音
+                        if (simpleViewMode) {
+                            speakWord(nextWord);
+                        }
                     }
                 }
             });
@@ -1982,9 +2851,6 @@
                 });
             });
             
-            // 初始化单词导航
-            setupWordNavigation();
-            
             // 更新导出按钮链接，加入当前过滤和排序状态
             function updateExportBtnUrl() {
                 const exportBtn = document.getElementById('exportBtn');
@@ -2035,8 +2901,8 @@
             
             // 知识图谱相关代码 - 已移除，现在使用链接跳转
             
-            // 添加朗读单词功能
-            function speakWord(word) {
+            // 添加朗读单词功能（增强版，带重试机制）
+            function speakWord(word, retryCount = 0) {
                 if (!word) return;
                 
                 // 获取音频元素和朗读按钮
@@ -2046,8 +2912,15 @@
                 const speakBtns = document.querySelectorAll('.speak-btn');
                 speakBtns.forEach(btn => btn.classList.add('playing'));
                 
+                // 停止当前播放
+                audio.pause();
+                audio.currentTime = 0;
+                
                 // 设置音频源
-                audio.src = `/speak_word/${encodeURIComponent(word)}`;
+                audio.src = `/speak_word/${encodeURIComponent(word)}?t=${Date.now()}`;
+                
+                // 加载音频
+                audio.load();
                 
                 // 播放结束时移除动画类
                 audio.onended = function() {
@@ -2055,16 +2928,34 @@
                 };
                 
                 // 播放失败时也移除动画类
-                audio.onerror = function() {
+                audio.onerror = function(e) {
                     speakBtns.forEach(btn => btn.classList.remove('playing'));
-                    console.error('播放单词音频失败');
+                    console.error('播放单词音频失败:', e);
+                    
+                    // 如果失败且重试次数少于3次，则重试
+                    if (retryCount < 3) {
+                        console.log(`重试播放音频... (${retryCount + 1}/3)`);
+                        setTimeout(() => {
+                            speakWord(word, retryCount + 1);
+                        }, 500);
+                    }
                 };
                 
-                // 播放音频
-                audio.play().catch(error => {
-                    speakBtns.forEach(btn => btn.classList.remove('playing'));
-                    console.error('播放单词音频失败:', error);
-                });
+                // 播放音频（延迟一点以确保加载完成）
+                setTimeout(() => {
+                    audio.play().catch(error => {
+                        speakBtns.forEach(btn => btn.classList.remove('playing'));
+                        console.error('播放单词音频失败:', error);
+                        
+                        // 如果失败且重试次数少于3次，则重试
+                        if (retryCount < 3) {
+                            console.log(`重试播放音频... (${retryCount + 1}/3)`);
+                            setTimeout(() => {
+                                speakWord(word, retryCount + 1);
+                            }, 500);
+                        }
+                    });
+                }, 100);
             }
 
             // 获取喇叭按钮元素
@@ -2090,5 +2981,62 @@
             });
         });
     </script>
+    
+    <!-- AI助教按钮（左上角，主题切换按钮右边） -->
+    <a href="{{ url_for('ai.ai_tutor') }}" class="ai-tutor-btn" title="AI助教">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+            <circle cx="8.5" cy="10.5" r="1.5"/>
+            <circle cx="15.5" cy="10.5" r="1.5"/>
+            <path d="M12 17.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+        </svg>
+    </a>
+    
+    <style>
+        /* AI助教按钮样式 - 统一与主题切换按钮风格 */
+        .ai-tutor-btn {
+            position: fixed;
+            top: 20px;
+            left: 70px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--card-bg);
+            box-shadow: 0 2px 8px var(--shadow-color);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .ai-tutor-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+        
+        .ai-tutor-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--text-color);
+        }
+        
+        @media (max-width: 768px) {
+            .ai-tutor-btn {
+                width: 36px;
+                height: 36px;
+                top: 15px;
+                left: 60px;
+            }
+            
+            .ai-tutor-btn svg {
+                width: 18px;
+                height: 18px;
+            }
+        }
+    </style>
 </body>
 </html> 

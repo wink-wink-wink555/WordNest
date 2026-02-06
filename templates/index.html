@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>单词自测系统</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- 引入Inter字体（苹果风格的开源字体）和思源黑体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         .encouragement {
             font-size: 0.9rem;
@@ -34,6 +35,7 @@
             gap: 6px;
             padding: 10px 16px;
             background-color: var(--primary-color);
+            border-radius: 12px;
             box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
         }
@@ -86,7 +88,48 @@
         }
         #current-word {
             animation: wordAppear 0.6s ease-out;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: calc(100% - 160px);
+            cursor: default;
         }
+        
+        /* 单词tooltip气泡样式 - 仅在单词被截断时显示 */
+        #current-word[data-truncated="true"] {
+            cursor: help;
+        }
+        
+        #current-word[data-truncated="true"]::after {
+            content: attr(data-full-word);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 32px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 10000;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        #current-word[data-truncated="true"]:hover::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-15px);
+        }
+        
+        /* 暗色模式下的tooltip */
+        .dark-mode #current-word[data-truncated="true"]::after {
+            background: rgba(255, 255, 255, 0.95);
+            color: #2d3748;
+        }
+        
         @keyframes wordAppear {
             0% { opacity: 0; transform: translateY(20px); }
             100% { opacity: 1; transform: translateY(0); }
@@ -279,7 +322,7 @@
 
     <a href="/word_list" class="word-list-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-        查看单词列表
+        <span id="listNameTextIndex">加载中...</span>
     </a>
     
     <div class="container">
@@ -350,8 +393,8 @@
         window.popupJustClosed = false;
         window.isPopupVisible = false;
         
-        // 朗读单词函数
-        function speakWord(word) {
+        // 朗读单词函数（增强版，带重试机制）
+        function speakWord(word, retryCount = 0) {
             if (!word || word === '点击"下一个"开始' || word === '加载中...' || word.includes('加载')) {
                 return;
             }
@@ -369,8 +412,15 @@
                 speakDetailsBtn.classList.add('playing');
             }
             
-            // 设置音频源
-            audio.src = `/speak_word/${encodeURIComponent(word)}`;
+            // 停止当前播放
+            audio.pause();
+            audio.currentTime = 0;
+            
+            // 设置音频源（添加时间戳防止缓存）
+            audio.src = `/speak_word/${encodeURIComponent(word)}?t=${Date.now()}`;
+            
+            // 加载音频
+            audio.load();
             
             // 播放结束时移除动画类
             audio.onended = function() {
@@ -379,18 +429,36 @@
             };
             
             // 播放失败时也移除动画类
-            audio.onerror = function() {
+            audio.onerror = function(e) {
                 if (speakBtn) speakBtn.classList.remove('playing');
                 if (speakDetailsBtn) speakDetailsBtn.classList.remove('playing');
-                console.error('播放单词音频失败');
+                console.error('播放单词音频失败:', e);
+                
+                // 如果失败且重试次数少于3次，则重试
+                if (retryCount < 3) {
+                    console.log(`重试播放音频... (${retryCount + 1}/3)`);
+                    setTimeout(() => {
+                        speakWord(word, retryCount + 1);
+                    }, 500);
+                }
             };
             
-            // 播放音频
-            audio.play().catch(error => {
-                if (speakBtn) speakBtn.classList.remove('playing');
-                if (speakDetailsBtn) speakDetailsBtn.classList.remove('playing');
-                console.error('播放单词音频失败:', error);
-            });
+            // 播放音频（延迟一点以确保加载完成）
+            setTimeout(() => {
+                audio.play().catch(error => {
+                    if (speakBtn) speakBtn.classList.remove('playing');
+                    if (speakDetailsBtn) speakDetailsBtn.classList.remove('playing');
+                    console.error('播放单词音频失败:', error);
+                    
+                    // 如果失败且重试次数少于3次，则重试
+                    if (retryCount < 3) {
+                        console.log(`重试播放音频... (${retryCount + 1}/3)`);
+                        setTimeout(() => {
+                            speakWord(word, retryCount + 1);
+                        }, 500);
+                    }
+                });
+            }, 100);
         }
         
         // 拦截所有右箭头键事件的函数 - 使用捕获阶段确保最早处理
@@ -428,6 +496,38 @@
         
         // 文档加载完成后的处理
         document.addEventListener('DOMContentLoaded', function() {
+            // 加载当前列表名称
+            const listNameTextIndex = document.getElementById('listNameTextIndex');
+            fetch('/api/lists/current')
+                .then(response => response.json())
+                .then(data => {
+                    listNameTextIndex.textContent = data.current_list;
+                })
+                .catch(error => {
+                    console.error('获取当前列表失败:', error);
+                    listNameTextIndex.textContent = '未知';
+                });
+            
+            // 监听列表切换事件（通过 localStorage）
+            let lastSwitchTime = localStorage.getItem('listSwitched');
+            
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'listSwitched' && e.newValue !== lastSwitchTime) {
+                    console.log('检测到列表已切换，刷新页面...');
+                    window.location.reload();
+                }
+            });
+            
+            // 页面获得焦点时也检查是否需要刷新
+            window.addEventListener('focus', function() {
+                const currentSwitchTime = localStorage.getItem('listSwitched');
+                if (currentSwitchTime && currentSwitchTime !== lastSwitchTime) {
+                    console.log('页面获得焦点，检测到列表已切换，刷新页面...');
+                    lastSwitchTime = currentSwitchTime;
+                    window.location.reload();
+                }
+            });
+            
             // 常规的DOMContentLoaded处理...
             
             // 获取元素引用
@@ -677,6 +777,37 @@
             // 当前单词
             let currentWord = '';
             
+            // 标记用户是否已经交互过（用于音频自动播放权限）
+            let userHasInteracted = false;
+            
+            // 监听用户首次交互
+            const markUserInteraction = function() {
+                userHasInteracted = true;
+                // 移除事件监听器，只需要标记一次
+                document.removeEventListener('click', markUserInteraction);
+                document.removeEventListener('keydown', markUserInteraction);
+            };
+            
+            // 添加交互事件监听
+            document.addEventListener('click', markUserInteraction);
+            document.addEventListener('keydown', markUserInteraction);
+            
+            // 检测单词是否被截断，如果是则显示tooltip
+            function checkWordTruncation() {
+                const displayedWord = currentWordElement.textContent.trim();
+                
+                // 检查元素的scrollWidth是否大于clientWidth
+                if (currentWordElement.scrollWidth > currentWordElement.clientWidth) {
+                    // 单词被截断了，设置属性以显示tooltip
+                    currentWordElement.setAttribute('data-truncated', 'true');
+                    currentWordElement.setAttribute('data-full-word', displayedWord);
+                } else {
+                    // 单词没有被截断
+                    currentWordElement.removeAttribute('data-truncated');
+                    currentWordElement.removeAttribute('data-full-word');
+                }
+            }
+            
             // 监听页面内容变化
             setInterval(function() {
                 const displayedWord = currentWordElement.textContent.trim();
@@ -700,8 +831,13 @@
                     // 记录新的当前单词
                     currentWord = displayedWord;
                     
-                    // 自动朗读新显示的单词
-                    speakWord(displayedWord);
+                    // 延迟检测单词是否被截断（等待DOM更新）
+                    setTimeout(checkWordTruncation, 100);
+                    
+                    // 只有在用户已经交互过后才自动朗读新显示的单词
+                    if (userHasInteracted) {
+                        speakWord(displayedWord);
+                    }
                 }
             }, 500);
         });

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>编辑单词 - 单词自测系统</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- 引入Inter字体（苹果风格的开源字体）和思源黑体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body class="compact-layout">
     <!-- 添加主题切换按钮 -->
@@ -16,7 +18,7 @@
         <h1>编辑单词</h1>
         <a href="/word_list" class="back-btn" id="backBtn">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-            返回单词列表
+            <span id="backBtnText">返回单词列表</span>
         </a>
         
         <form action="/edit_word/{{ word.word }}" method="post" id="wordForm">
@@ -136,19 +138,34 @@
             let definitionCount = {{ word.definitions|length }};
             let formModified = false; // 跟踪表单是否被修改
             
+            // 检查URL参数，判断来源页面
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromPage = urlParams.get('from');
+            const backBtn = document.getElementById('backBtn');
+            const backBtnText = document.getElementById('backBtnText');
+            
+            // 根据来源页面设置返回按钮
+            if (fromPage === 'index') {
+                backBtnText.textContent = '返回抽查页面';
+                backBtn.href = '/';
+            } else {
+                backBtnText.textContent = '返回单词列表';
+                backBtn.href = '/word_list';
+            }
+            
             // 监听表单变化
             document.getElementById('wordForm').addEventListener('input', function() {
                 formModified = true;
             });
             
             // 处理返回按钮点击
-            document.getElementById('backBtn').addEventListener('click', function(e) {
+            backBtn.addEventListener('click', function(e) {
                 // 如果表单已修改但未保存，则显示确认提示
                 if (formModified) {
                     e.preventDefault(); // 阻止默认跳转行为
                     if (confirm('你有未保存的修改，确定要离开吗？所有修改都将丢失。')) {
-                        // 用户确认离开，手动跳转
-                        window.location.href = '/word_list';
+                        // 用户确认离开，手动跳转到对应页面
+                        window.location.href = backBtn.href;
                     }
                 }
                 // 如果表单未修改，则使用默认跳转行为
@@ -364,7 +381,14 @@
                 })
                 .then(response => {
                     if (response.ok) {
-                        window.location.href = '/word_list';
+                        // 保存成功后，根据来源页面返回
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const fromPage = urlParams.get('from');
+                        if (fromPage === 'index') {
+                            window.location.href = '/';
+                        } else {
+                            window.location.href = '/word_list';
+                        }
                     } else {
                         throw new Error('更新单词失败');
                     }

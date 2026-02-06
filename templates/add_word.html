@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>添加单词 - 单词自测系统</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- 引入Inter字体（苹果风格的开源字体）和思源黑体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body class="compact-layout">
     <!-- 添加主题切换按钮 -->
@@ -23,7 +25,13 @@
             <div class="form-card">
                 <div class="form-group">
                     <label for="word" class="form-label">单词</label>
-                    <input type="text" id="word" name="word" class="form-control" required>
+                    <div class="input-with-button">
+                        <input type="text" id="word" name="word" class="form-control" required>
+                        <button type="button" class="btn ai-fill-btn" id="aiFillBtn" onclick="aiFillWord()" title="AI一键填充所有信息">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                            AI填充
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="definitions-container">
@@ -135,6 +143,29 @@
             let definitionCount = 1;
             let isSaveAndContinue = false;
             let formModified = false; // 跟踪表单是否被修改
+            let isAIProcessing = false; // 跟踪AI是否正在处理
+            
+            // 全局按钮禁用/启用函数
+            function setGlobalButtonsDisabled(disabled) {
+                isAIProcessing = disabled;
+                // 禁用/启用所有主要按钮
+                document.getElementById('backBtn').style.pointerEvents = disabled ? 'none' : 'auto';
+                document.getElementById('backBtn').style.opacity = disabled ? '0.5' : '1';
+                document.getElementById('saveBtn').disabled = disabled;
+                document.getElementById('saveAndContinueBtn').disabled = disabled;
+                document.getElementById('addDefinitionBtn').disabled = disabled;
+                
+                // 禁用/启用所有生成按钮
+                document.querySelectorAll('.generate-example-btn, .generate-note-btn').forEach(btn => {
+                    btn.disabled = disabled;
+                });
+                
+                // 如果AI正在处理，也禁用AI填充按钮
+                const aiFillBtn = document.getElementById('aiFillBtn');
+                if (aiFillBtn) {
+                    aiFillBtn.disabled = disabled;
+                }
+            }
             
             // 从URL参数获取单词并预填表单
             function getWordFromURL() {
@@ -487,6 +518,9 @@
                 button.innerHTML = '<svg class="loading-spinner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg> 生成中...';
                 button.disabled = true;
                 
+                // 禁用所有其他按钮
+                setGlobalButtonsDisabled(true);
+                
                 fetch('/generate_example', {
                     method: 'POST',
                     headers: {
@@ -512,6 +546,8 @@
                 .finally(() => {
                     button.innerHTML = originalText;
                     button.disabled = false;
+                    // 恢复所有按钮
+                    setGlobalButtonsDisabled(false);
                 });
             };
             
@@ -539,6 +575,9 @@
                 button.innerHTML = '<svg class="loading-spinner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg> 生成中...';
                 button.disabled = true;
                 
+                // 禁用所有其他按钮
+                setGlobalButtonsDisabled(true);
+                
                 fetch('/generate_note', {
                     method: 'POST',
                     headers: {
@@ -564,6 +603,198 @@
                 .finally(() => {
                     button.innerHTML = originalText;
                     button.disabled = false;
+                    // 恢复所有按钮
+                    setGlobalButtonsDisabled(false);
+                });
+            };
+            
+            // AI一键填充所有信息
+            window.aiFillWord = function() {
+                const word = document.getElementById('word').value;
+                if (!word || !word.trim()) {
+                    alert('请先输入单词');
+                    document.getElementById('word').focus();
+                    return;
+                }
+                
+                const aiFillBtn = document.getElementById('aiFillBtn');
+                const originalText = aiFillBtn.innerHTML;
+                
+                // 显示加载状态
+                aiFillBtn.innerHTML = '<svg class="loading-spinner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg> AI生成中...';
+                aiFillBtn.disabled = true;
+                
+                // 禁用所有其他按钮
+                setGlobalButtonsDisabled(true);
+                
+                fetch('/ai_fill_word', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ word: word.trim() }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // 检查是否有错误
+                    if (data.error) {
+                        alert('❌ ' + data.error);
+                        return;
+                    }
+                    
+                    if (data.definitions && data.definitions.length > 0) {
+                        // 清空现有的词义表单
+                        const container = document.getElementById('definitions-container');
+                        container.innerHTML = '';
+                        
+                        // 重置计数器
+                        definitionCount = 0;
+                        
+                        // 为每个释义创建表单
+                        data.definitions.forEach((def, index) => {
+                            // 如果不是第一个，需要创建新的词义框
+                            if (index > 0) {
+                                // 创建新的词义表单
+                                const newDefinitionIndex = definitionCount;
+                                definitionCount++;
+                                
+                                const definitionDiv = document.createElement('div');
+                                definitionDiv.className = 'definition-form';
+                                definitionDiv.id = `definition-${newDefinitionIndex}`;
+                                
+                                definitionDiv.innerHTML = `
+                                    <h3>词义 #${definitionCount}</h3>
+                                    <div class="two-col-form">
+                                    <div class="form-group">
+                                        <label class="form-label">词性</label>
+                                        <select name="part_of_speech" class="form-control" required>
+                                            <option value="">-- 请选择词性 --</option>
+                                            <option value="n.">n. 名词</option>
+                                            <option value="v.">v. 动词</option>
+                                            <option value="adj.">adj. 形容词</option>
+                                            <option value="adv.">adv. 副词</option>
+                                            <option value="prep.">prep. 介词</option>
+                                            <option value="conj.">conj. 连词</option>
+                                            <option value="pron.">pron. 代词</option>
+                                            <option value="interj.">interj. 感叹词</option>
+                                            <option value="num.">num. 数词</option>
+                                            <option value="art.">art. 冠词</option>
+                                            <option value="phr.">phr. 短语</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">释义</label>
+                                        <input type="text" name="meaning" class="form-control" required>
+                                    </div>
+                                        <div class="form-group full-width">
+                                        <label class="form-label">例句</label>
+                                            <div class="input-with-button">
+                                        <textarea name="example" class="form-control"></textarea>
+                                                <button type="button" class="btn generate-example-btn" onclick="generateExample(this)">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                                                    生成例句
+                                                </button>
+                                            </div>
+                                        <small class="form-text">可选</small>
+                                    </div>
+                                        <div class="form-group full-width">
+                                        <label class="form-label">笔记</label>
+                                            <div class="input-with-button">
+                                        <textarea name="note" class="form-control"></textarea>
+                                                <button type="button" class="btn generate-note-btn" onclick="generateNote(this)">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                                                    生成笔记
+                                                </button>
+                                            </div>
+                                        <small class="form-text">可选</small>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn remove-definition-btn" onclick="removeDefinition(${newDefinitionIndex})">移除此词义</button>
+                                `;
+                                
+                                container.appendChild(definitionDiv);
+                            } else {
+                                // 第一个词义，重建第一个表单
+                                const definitionDiv = document.createElement('div');
+                                definitionDiv.className = 'definition-form';
+                                definitionDiv.id = 'definition-0';
+                                
+                                definitionDiv.innerHTML = `
+                                    <h3>词义 #1</h3>
+                                    <div class="two-col-form">
+                                    <div class="form-group">
+                                        <label class="form-label">词性</label>
+                                        <select name="part_of_speech" class="form-control" required>
+                                            <option value="">-- 请选择词性 --</option>
+                                            <option value="n.">n. 名词</option>
+                                            <option value="v.">v. 动词</option>
+                                            <option value="adj.">adj. 形容词</option>
+                                            <option value="adv.">adv. 副词</option>
+                                            <option value="prep.">prep. 介词</option>
+                                            <option value="conj.">conj. 连词</option>
+                                            <option value="pron.">pron. 代词</option>
+                                            <option value="interj.">interj. 感叹词</option>
+                                            <option value="num.">num. 数词</option>
+                                            <option value="art.">art. 冠词</option>
+                                            <option value="phr.">phr. 短语</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">释义</label>
+                                        <input type="text" name="meaning" class="form-control" required>
+                                    </div>
+                                        <div class="form-group full-width">
+                                        <label class="form-label">例句</label>
+                                            <div class="input-with-button">
+                                        <textarea name="example" class="form-control"></textarea>
+                                                <button type="button" class="btn generate-example-btn" onclick="generateExample(this)">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                                                    生成例句
+                                                </button>
+                                            </div>
+                                        <small class="form-text">可选</small>
+                                    </div>
+                                        <div class="form-group full-width">
+                                        <label class="form-label">笔记</label>
+                                            <div class="input-with-button">
+                                        <textarea name="note" class="form-control"></textarea>
+                                                <button type="button" class="btn generate-note-btn" onclick="generateNote(this)">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                                                    生成笔记
+                                                </button>
+                                            </div>
+                                        <small class="form-text">可选</small>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                container.appendChild(definitionDiv);
+                                definitionCount = 1;
+                            }
+                            
+                            // 填充数据
+                            const form = document.querySelector(`#definition-${index}`);
+                            if (form) {
+                                form.querySelector('[name="part_of_speech"]').value = def.part_of_speech || '';
+                                form.querySelector('[name="meaning"]').value = def.meaning || '';
+                                form.querySelector('[name="example"]').value = def.example || '';
+                                form.querySelector('[name="note"]').value = def.note || '';
+                            }
+                        });
+                        
+                        alert(`✅ 成功生成 ${data.definitions.length} 个词性的释义！`);
+                    } else {
+                        alert('❌ AI生成失败：未返回有效数据');
+                    }
+                })
+                .catch(error => {
+                    alert('❌ AI生成失败：' + error.message);
+                })
+                .finally(() => {
+                    aiFillBtn.innerHTML = originalText;
+                    aiFillBtn.disabled = false;
+                    // 恢复所有按钮
+                    setGlobalButtonsDisabled(false);
                 });
             };
         });

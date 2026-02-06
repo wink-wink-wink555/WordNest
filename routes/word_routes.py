@@ -6,12 +6,18 @@ import csv
 from io import StringIO
 import tempfile
 import pyttsx3
-from flask import Blueprint, render_template, jsonify, request, redirect, url_for, Response, send_file
+from flask import Blueprint, render_template, jsonify, request, redirect, url_for, Response, send_file, send_from_directory
 from services import WordService, LLMService
 from utils import load_settings, save_settings, ENCOURAGEMENT_MESSAGES
 
 
 word_bp = Blueprint('word', __name__)
+
+
+@word_bp.route('/favicon.ico')
+def favicon():
+    """返回favicon图标（简单的空响应避免404）"""
+    return '', 204
 
 
 @word_bp.route('/')
@@ -36,10 +42,18 @@ def get_random_word():
     random_word = WordService.get_random_word(prev_word, marked_only)
     
     if not random_word:
-        return jsonify({
-            'error': '没有标注的单词',
-            'word': 'No marked words'
-        })
+        # 检查是否是因为没有单词还是没有标注的单词
+        all_words = WordService.get_all_words()
+        if not all_words:
+            return jsonify({
+                'error': '当前列表为空',
+                'word': '暂无单词'
+            })
+        else:
+            return jsonify({
+                'error': '没有标注的单词',
+                'word': 'No marked words'
+            })
     
     # 返回单词但不返回定义
     return jsonify({
@@ -247,6 +261,32 @@ def generate_note():
         return jsonify({'note': note})
     else:
         return jsonify({'error': '生成笔记失败'}), 500
+
+
+@word_bp.route('/ai_fill_word', methods=['POST'])
+def ai_fill_word():
+    """使用AI一键填充单词的完整信息（支持多重释义）"""
+    data = request.json
+    word = data.get('word', '')
+    
+    if not word:
+        return jsonify({'error': '请输入单词'}), 400
+    
+    # 调用LLM服务生成完整的单词信息
+    word_info = LLMService.generate_full_word_info(word)
+    
+    if not word_info:
+        return jsonify({'error': 'AI生成失败，请检查网络连接或稍后重试'}), 500
+    
+    # 检查是否有错误信息
+    if 'error' in word_info:
+        return jsonify(word_info), 400
+    
+    # 成功返回词条信息
+    if 'definitions' in word_info:
+        return jsonify(word_info)
+    else:
+        return jsonify({'error': 'AI返回数据格式错误'}), 500
 
 
 @word_bp.route('/get_word_details/<word>')

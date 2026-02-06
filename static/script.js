@@ -23,28 +23,39 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    // 处理错误情况，例如"没有标注的单词"
+                    // 处理错误情况，例如"没有标注的单词"或"没有单词"
                     currentWordElement.textContent = data.word;
                     currentWordElement.classList.remove('loading');
                     currentWordElement.classList.add('word-appear');
                     
                     // 添加提示信息
+                    let hintText = '没有标注的单词，请先标注一些单词';
+                    if (data.word === 'No words available' || data.word === '暂无单词') {
+                        hintText = '当前列表为空，请先添加一些单词';
+                    }
+                    
                     const noWordsHint = document.createElement('div');
                     noWordsHint.className = 'no-marked-hint';
-                    noWordsHint.textContent = '没有标注的单词，请先标注一些单词';
+                    noWordsHint.textContent = hintText;
+                    noWordsHint.style.cssText = 'text-align: center; color: #8fa5c0; margin-top: 20px; font-size: 16px;';
                     
                     // 显示提示
                     if (!document.querySelector('.no-marked-hint')) {
                         currentWordElement.parentNode.appendChild(noWordsHint);
+                    } else {
+                        document.querySelector('.no-marked-hint').textContent = hintText;
                     }
                     
-                    // 禁用按钮
-                    showDefinitionButton.disabled = true;
-                    if (editWordButton) {
-                        editWordButton.disabled = true;
+                    // 隐藏按钮组（而不是禁用）
+                    const buttonGroup = document.querySelector('.button-group');
+                    if (buttonGroup) {
+                        buttonGroup.style.display = 'none';
                     }
-                    if (markWordButton) {
-                        markWordButton.disabled = true;
+                    
+                    // 隐藏操作按钮
+                    const wordActions = document.querySelector('.word-actions');
+                    if (wordActions) {
+                        wordActions.style.display = 'none';
                     }
                     
                     return;
@@ -63,6 +74,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentWordElement.classList.add('word-appear');
                 currentWordElement.textContent = currentWord;
                 
+                // 恢复按钮组显示
+                const buttonGroup = document.querySelector('.button-group');
+                if (buttonGroup) {
+                    buttonGroup.style.display = 'flex';
+                }
+                
+                // 恢复操作按钮显示
+                const wordActions = document.querySelector('.word-actions');
+                if (wordActions) {
+                    wordActions.style.display = 'flex';
+                }
+                
                 // 恢复按钮状态
                 showDefinitionButton.disabled = false;
                 updateShowDefinitionButton(false);
@@ -71,10 +94,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 隐藏定义
                 definitionContainer.classList.add('hidden');
                 
-                // 更新编辑按钮链接
+                // 更新编辑按钮链接，添加from参数标识来源
                 if (editWordButton) {
                     editWordButton.onclick = function() {
-                        window.location.href = `/edit_word/${currentWord}`;
+                        window.location.href = `/edit_word/${currentWord}?from=index`;
                     };
                     editWordButton.disabled = false;
                 }
@@ -254,6 +277,75 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 页面加载后自动获取第一个单词
-    getRandomWord();
+    // 页面加载后恢复状态或获取第一个单词
+    restorePageState();
+    
+    // 保存页面状态到localStorage
+    function savePageState() {
+        const state = {
+            currentWord: currentWord,
+            prevWord: document.getElementById('prevWordText').textContent.trim(),
+            timestamp: Date.now()
+        };
+        
+        localStorage.setItem('indexPageState', JSON.stringify(state));
+    }
+    
+    // 恢复页面状态
+    function restorePageState() {
+        const savedState = localStorage.getItem('indexPageState');
+        
+        if (savedState) {
+            try {
+                const state = JSON.parse(savedState);
+                
+                // 如果保存的状态有效（不是初始状态且不超过1小时）
+                const oneHour = 60 * 60 * 1000;
+                if (state.currentWord && 
+                    state.currentWord !== '点击"下一个"开始' && 
+                    state.currentWord !== '加载中...' &&
+                    (Date.now() - state.timestamp) < oneHour) {
+                    
+                    // 恢复当前单词
+                    currentWordElement.textContent = state.currentWord;
+                    currentWord = state.currentWord;
+                    
+                    // 恢复上一个单词
+                    if (state.prevWord && state.prevWord !== '-') {
+                        document.getElementById('prevWordText').textContent = state.prevWord;
+                    }
+                    
+                    // 更新编辑按钮
+                    if (editWordButton) {
+                        editWordButton.onclick = function() {
+                            window.location.href = `/edit_word/${currentWord}?from=index`;
+                        };
+                        editWordButton.disabled = false;
+                    }
+                    
+                    // 更新标记按钮状态
+                    updateMarkButtonStatus();
+                    
+                    return; // 不需要获取新单词
+                }
+            } catch (e) {
+                console.error('恢复页面状态失败:', e);
+            }
+        }
+        
+        // 如果没有保存的状态或状态无效，获取第一个单词
+        getRandomWord();
+    }
+    
+    // 监听页面即将卸载事件，保存状态
+    window.addEventListener('beforeunload', function() {
+        savePageState();
+    });
+    
+    // 监听页面可见性变化，在隐藏时保存状态
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            savePageState();
+        }
+    });
 }); 
