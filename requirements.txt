@@ -1,7 +1,4 @@
 flask==2.2.5
 Flask-SQLAlchemy==3.0.3
 werkzeug==2.2.3
-gunicorn==21.2.0
-ollama
-requests
 pyttsx3
