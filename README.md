@@ -3,7 +3,7 @@
 你的专属英语单词手账！(｡♥‿♥｡) 一个基于Flask的现代化个人单词学习系统，让你把那些"死活记不住"的单词都收进小窝里慢慢消化~ 支持AI智能助手、知识图谱可视化等黑科技，让背单词从此不再是噩梦！✧(≖ ◡ ≖✿)
 
 <div align="center">
-  <img src="image/LOGO.jpg" alt="WordNest Logo" width="260"/>
+  <img src="screenshots/LOGO.jpg" alt="WordNest Logo" width="260"/>
 </div>
 
 <div align="center">
@@ -62,14 +62,14 @@
 随机抽取你的生词，测试记忆效果：
 
 <div align="center">
-<img src="image/1.png" alt="单词抽查界面" width="600"/>
+<img src="screenshots/1.png" alt="单词抽查界面" width="600"/>
 <p><em>清爽的抽查界面，专注于单词本身 (◕‿◕)</em></p>
 </div>
 
 点击显示释义，检验学习成果：
 
 <div align="center">
-<img src="image/2.png" alt="查看单词释义" width="600"/>
+<img src="screenshots/2.png" alt="查看单词释义" width="600"/>
 <p><em>详细的词性、释义、例句，一目了然！</em></p>
 </div>
 
@@ -77,36 +77,50 @@
 完整的单词列表，你的学习轨迹：
 
 <div align="center">
-<img src="image/3.png" alt="单词列表完整视图" width="600"/>
+<img src="screenshots/3.png" alt="单词列表完整视图" width="600"/>
 <p><em>展示释义的完整视图，随时回顾学习内容</em></p>
 </div>
 
 简洁模式，快速浏览：
 
 <div align="center">
-<img src="image/4.png" alt="单词列表简洁视图" width="600"/>
+<img src="screenshots/4.png" alt="单词列表简洁视图" width="600"/>
 <p><em>隐藏释义的简洁视图，测试自己的记忆</em></p>
 </div>
 
 选中单词，即时查看详情：
 
 <div align="center">
-<img src="image/7.png" alt="选中单词显示详情" width="600"/>
+<img src="screenshots/7.png" alt="选中单词显示详情" width="600"/>
 <p><em>点击单词立即显示详情，交互超级顺滑~</em></p>
 </div>
 
-### 🕸️ AI知识图谱魔法
+随时编辑或进入其它单词列表：
+
+<div align="center">
+<img src="screenshots/10.png" alt="管理单词列表" width="600"/>
+<p><em>多单词列表支持~点击单词列表立即重命名、编辑、进入该单词列表！</em></p>
+</div>
+
+随时创建新的单词列表：
+
+<div align="center">
+<img src="screenshots/10.png" alt="创建单词列表" width="600"/>
+<p><em>多单词列表支持~随时创建新的单词列表！</em></p>
+</div>
+
+### 🕸️ AI知识图谱魔法（Beta版）
 DeepSeek API绘制的词汇关联图谱：
 
 <div align="center">
-<img src="image/5.png" alt="知识图谱可视化" width="600"/>
+<img src="screenshots/5.png" alt="知识图谱可视化" width="600"/>
 <p><em>神奇的知识图谱，发现单词间的隐秘联系 ✨</em></p>
 </div>
 
 智能学习路径建议：
 
 <div align="center">
-<img src="image/6.png" alt="学习路径建议" width="600"/>
+<img src="screenshots/6.png" alt="学习路径建议" width="600"/>
 <p><em>AI贴心提供学习建议，让你的学习更有方向感</em></p>
 </div>
 
@@ -114,7 +128,7 @@ DeepSeek API绘制的词汇关联图谱：
 简单直观的添加界面：
 
 <div align="center">
-<img src="image/8.png" alt="添加新单词界面" width="600"/>
+<img src="screenshots/8.png" alt="添加新单词界面" width="600"/>
 <p><em>支持多词性、多释义，还有AI生成例句功能哦！</em></p>
 </div>
 
@@ -122,7 +136,7 @@ DeepSeek API绘制的词汇关联图谱：
 护眼的深色主题：
 
 <div align="center">
-<img src="image/9.png" alt="夜间模式界面" width="600"/>
+<img src="screenshots/9.png" alt="夜间模式界面" width="600"/>
 <p><em>深夜学习也不累眼，温柔的夜间模式 (｡♥‿♥｡)</em></p>
 </div>
 
