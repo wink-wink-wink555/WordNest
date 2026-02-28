@@ -3,7 +3,7 @@
 你的专属英语单词手账！(｡♥‿♥｡) 一个基于Flask的现代化个人单词学习系统，让你把那些"死活记不住"的单词都收进小窝里慢慢消化~ 支持AI智能助手、知识图谱可视化等黑科技，让背单词从此不再是噩梦！✧(≖ ◡ ≖✿)
 
 <div align="center">
-  <img src="screenshots/LOGO.png" alt="WordNest Logo" width="260"/>
+  <img src="screenshots/LOGO.jpg" alt="WordNest Logo" width="280"/>
 </div>
 
 <div align="center">
