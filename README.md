@@ -8,7 +8,7 @@
 
 <div align="center">
 
-![WordNest Logo](https://img.shields.io/badge/WordNest-✨_Build_your_own_dictionary-ff69b4?style=for-the-badge)
+![WordNest Logo](https://img.shields.io/badge/WordNest-✨_Build_your_own_dictionaries-ff69b4?style=for-the-badge)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-2.3.3-green?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
