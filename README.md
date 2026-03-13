@@ -17,6 +17,10 @@
 
 </div>
 
+<div align="center">
+  <img src="screenshots/Graph.jpg" alt="WordNest Logo">
+</div>
+
 ## 💡 为什么做这个
 
 作为一个被英语单词折磨过（其实还在被折磨...）的普通人，我试过市面上能找到的各种背单词软件... (´･ω･`)
