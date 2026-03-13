@@ -13,7 +13,7 @@ Your exclusive English vocabulary handbook! (｡♥‿♥｡) A modern personal 
 [![Flask](https://img.shields.io/badge/Flask-2.3.3-green?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-[English](README.en.md) | [简体中文](README.md)
+[English](README.en.md) | [简体中文](README.md) | [Français](README.fr.md)
 
 </div>
 
@@ -524,5 +524,6 @@ Made with ❤️ for everyone who has ever struggled with vocabulary.
 
 
 </div>
+
 
 
