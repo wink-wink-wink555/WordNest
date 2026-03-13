@@ -18,7 +18,7 @@
 </div>
 
 <div align="center">
-  <img src="screenshots/Graph.png" alt="WordNest Logo">
+  <img src="screenshots/Graph.png" alt="Graph">
 </div>
 
 ## 💡 为什么做这个
