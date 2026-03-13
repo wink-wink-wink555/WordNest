@@ -7,7 +7,9 @@ Your exclusive English vocabulary handbook! (｡♥‿♥｡) A modern personal 
 </div>
 
 <div align="center">
-
+  
+[English](README.en.md) | [简体中文](README.md)
+  
 ![WordNest Logo](https://img.shields.io/badge/WordNest-✨_Build_your_own_dictionaries-ff69b4?style=for-the-badge)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-2.3.3-green?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
@@ -519,5 +521,6 @@ If this project helps you, please give us a Star!
 Made with ❤️ for everyone who has ever struggled with vocabulary.
 
 [📖 View Docs](https://github.com/wink-wink-wink555/WordNest/wiki) | [🚀 Quick Start](https://www.google.com/search?q=%23-quick-start) | [🤝 Contribute](https://www.google.com/search?q=%23-contribution-guide)
+
 
 </div>
