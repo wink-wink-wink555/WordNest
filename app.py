@@ -3,152 +3,397 @@ Flask应用主入口
 使用应用工厂模式
 """
 import os
-from flask import Flask, session, g
-from config import config
+import sqlite3
+from datetime import datetime
+
+from flask import Flask, session
+from flask_login import LoginManager, current_user
+
+from config import Config, config
 from models import db
+
+
+def _parse_datetime(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+    value = str(value).replace('Z', '+00:00')
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        for fmt in ('%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S'):
+            try:
+                return datetime.strptime(value, fmt)
+            except ValueError:
+                continue
+    return None
+
+
+def _sqlite_tables(db_path):
+    if not os.path.exists(db_path):
+        return set()
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    return {row[0] for row in rows}
+
+
+def _sqlite_columns(db_path, table_name):
+    if not os.path.exists(db_path):
+        return set()
+    with sqlite3.connect(db_path) as conn:
+        try:
+            rows = conn.execute(f'PRAGMA table_info({table_name})').fetchall()
+        except sqlite3.DatabaseError:
+            return set()
+    return {row[1] for row in rows}
+
+
+def _backup_path(path):
+    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+    return f'{path}.legacy_{timestamp}.bak'
+
+
+def _collect_legacy_word_data(main_db_path, instance_folder):
+    legacy_list_files = []
+    for filename in sorted(os.listdir(instance_folder)):
+        if not filename.endswith('.db'):
+            continue
+        db_path = os.path.join(instance_folder, filename)
+        if 'word' in _sqlite_tables(db_path) and 'list_id' not in _sqlite_columns(db_path, 'word'):
+            legacy_list_files.append(db_path)
+
+    main_tables = _sqlite_tables(main_db_path)
+    needs_main_migration = bool(legacy_list_files) and (
+        'word_lists' not in main_tables or 'list_id' not in _sqlite_columns(main_db_path, 'word')
+    )
+
+    if not needs_main_migration:
+        return {
+            'needs_migration': False,
+            'users': [],
+            'api_configs': [],
+            'lists': [],
+            'legacy_files': [],
+        }
+
+    users = []
+    api_configs = []
+    if os.path.exists(main_db_path):
+        with sqlite3.connect(main_db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            if 'users' in main_tables:
+                users = [dict(row) for row in conn.execute(
+                    'SELECT id, username, password_hash, created_at FROM users ORDER BY id'
+                ).fetchall()]
+            if 'user_api_config' in main_tables:
+                api_configs = [dict(row) for row in conn.execute(
+                    'SELECT id, user_id, api_key, api_base_url, model_name, updated_at '
+                    'FROM user_api_config ORDER BY id'
+                ).fetchall()]
+
+    lists = []
+    for db_path in legacy_list_files:
+        list_name = os.path.splitext(os.path.basename(db_path))[0]
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            word_rows = conn.execute(
+                'SELECT id, word, marked FROM word ORDER BY id'
+            ).fetchall()
+
+            definitions_by_word_id = {}
+            if 'definition' in _sqlite_tables(db_path):
+                definition_rows = conn.execute(
+                    'SELECT word_id, part_of_speech, meaning, example, note FROM definition ORDER BY id'
+                ).fetchall()
+                for row in definition_rows:
+                    definitions_by_word_id.setdefault(row['word_id'], []).append({
+                        'part_of_speech': row['part_of_speech'],
+                        'meaning': row['meaning'],
+                        'example': row['example'] or '',
+                        'note': row['note'] or '',
+                    })
+
+        words = []
+        for row in word_rows:
+            words.append({
+                'word': row['word'],
+                'marked': bool(row['marked']),
+                'definitions': definitions_by_word_id.get(row['id'], []),
+            })
+
+        lists.append({'name': list_name, 'words': words})
+
+    return {
+        'needs_migration': True,
+        'users': users,
+        'api_configs': api_configs,
+        'lists': lists,
+        'legacy_files': legacy_list_files,
+    }
+
+
+def _collect_legacy_chat_data(chat_db_path):
+    tables = _sqlite_tables(chat_db_path)
+    if 'conversations' not in tables:
+        return {'needs_migration': False, 'conversations': []}
+
+    conversation_columns = _sqlite_columns(chat_db_path, 'conversations')
+    if 'user_id' in conversation_columns:
+        return {'needs_migration': False, 'conversations': []}
+
+    with sqlite3.connect(chat_db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        conversations = []
+        conversation_rows = conn.execute(
+            'SELECT id, title, created_at, updated_at FROM conversations ORDER BY id'
+        ).fetchall()
+        for row in conversation_rows:
+            messages = [dict(message) for message in conn.execute(
+                'SELECT role, content, created_at FROM messages '
+                'WHERE conversation_id = ? ORDER BY created_at ASC, id ASC',
+                (row['id'],),
+            ).fetchall()]
+            conversations.append({
+                'title': row['title'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at'],
+                'messages': messages,
+            })
+
+    return {'needs_migration': True, 'conversations': conversations}
+
+
+def _prepare_legacy_migration(app):
+    main_db_path = os.path.join(app.config['INSTANCE_FOLDER'], 'words.db')
+    chat_db_path = os.path.join(app.config['CHAT_DATA_FOLDER'], 'chat.db')
+
+    word_data = _collect_legacy_word_data(main_db_path, app.config['INSTANCE_FOLDER'])
+    chat_data = _collect_legacy_chat_data(chat_db_path)
+
+    if not word_data['needs_migration'] and not chat_data['needs_migration']:
+        return
+
+    app.config['_LEGACY_IMPORT_DATA'] = {
+        'words': word_data,
+        'chat': chat_data,
+    }
+
+    if word_data['needs_migration']:
+        for legacy_path in word_data['legacy_files']:
+            os.rename(legacy_path, _backup_path(legacy_path))
+
+    if chat_data['needs_migration'] and os.path.exists(chat_db_path):
+        os.rename(chat_db_path, _backup_path(chat_db_path))
+
+
+def _import_legacy_data(app):
+    legacy_data = app.config.pop('_LEGACY_IMPORT_DATA', None)
+    if not legacy_data:
+        return
+
+    from chat_models import Conversation, Message
+    from models import Definition, User, UserApiConfig, Word, WordList
+
+    word_data = legacy_data['words']
+    chat_data = legacy_data['chat']
+
+    if word_data['needs_migration']:
+        for user_data in word_data['users']:
+            user = User(
+                id=user_data['id'],
+                username=user_data['username'],
+                password_hash=user_data['password_hash'],
+                created_at=_parse_datetime(user_data.get('created_at')) or datetime.utcnow(),
+            )
+            db.session.add(user)
+
+        db.session.flush()
+
+        existing_user_ids = {user.id for user in User.query.all()}
+
+        for api_config_data in word_data['api_configs']:
+            if api_config_data['user_id'] not in existing_user_ids:
+                continue
+            config_record = UserApiConfig(
+                id=api_config_data['id'],
+                user_id=api_config_data['user_id'],
+                api_key=api_config_data.get('api_key') or '',
+                api_base_url=api_config_data.get('api_base_url') or 'https://api.deepseek.com',
+                model_name=api_config_data.get('model_name') or 'deepseek-chat',
+                updated_at=_parse_datetime(api_config_data.get('updated_at')) or datetime.utcnow(),
+            )
+            db.session.add(config_record)
+
+        db.session.flush()
+
+        all_users = User.query.order_by(User.id).all()
+        for user in all_users:
+            for legacy_list in word_data['lists']:
+                word_list = WordList(
+                    user_id=user.id,
+                    name=legacy_list['name'],
+                    created_at=datetime.utcnow(),
+                )
+                db.session.add(word_list)
+                db.session.flush()
+
+                for word_data_item in legacy_list['words']:
+                    word = Word(
+                        list_id=word_list.id,
+                        word=word_data_item['word'],
+                        marked=word_data_item.get('marked', False),
+                    )
+                    db.session.add(word)
+                    db.session.flush()
+
+                    for definition_data in word_data_item.get('definitions', []):
+                        db.session.add(Definition(
+                            word_id=word.id,
+                            part_of_speech=definition_data['part_of_speech'],
+                            meaning=definition_data['meaning'],
+                            example=definition_data.get('example', ''),
+                            note=definition_data.get('note', ''),
+                        ))
+
+        db.session.flush()
+
+    from services.list_service import ListService
+
+    for user in User.query.all():
+        ListService.ensure_user_default_list(user)
+        if not user.api_config:
+            db.session.add(UserApiConfig(user=user))
+
+    db.session.commit()
+
+    if chat_data['needs_migration']:
+        users = User.query.order_by(User.id).all()
+        for user in users:
+            for legacy_conversation in chat_data['conversations']:
+                conversation = Conversation(
+                    user_id=user.id,
+                    title=legacy_conversation['title'],
+                    created_at=_parse_datetime(legacy_conversation.get('created_at')) or datetime.utcnow(),
+                    updated_at=_parse_datetime(legacy_conversation.get('updated_at')) or datetime.utcnow(),
+                )
+                db.session.add(conversation)
+                db.session.flush()
+
+                for message_data in legacy_conversation.get('messages', []):
+                    db.session.add(Message(
+                        conversation_id=conversation.id,
+                        role=message_data['role'],
+                        content=message_data['content'],
+                        created_at=_parse_datetime(message_data.get('created_at')) or datetime.utcnow(),
+                    ))
+
+        db.session.commit()
 
 
 def create_app(config_name=None):
     """
     应用工厂函数
-    
+
     Args:
         config_name: 配置名称 ('development', 'production', 'default')
-        
+
     Returns:
         Flask应用实例
     """
-    # 创建Flask应用
     app = Flask(__name__)
-    
-    # 加载配置
+
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'default')
     app.config.from_object(config[config_name])
-    
-    # 确保instance文件夹存在
-    instance_folder = app.config.get('INSTANCE_FOLDER', os.path.join(os.path.dirname(__file__), 'instance'))
-    if not os.path.exists(instance_folder):
-        os.makedirs(instance_folder)
-    
-    # 设置初始数据库 URI（使用默认的 words 列表）
-    # 不使用 ListService.get_default_list()，因为此时还没有应用上下文
+
+    instance_folder = app.config.get('INSTANCE_FOLDER', Config.INSTANCE_FOLDER)
+    chat_folder = app.config.get('CHAT_DATA_FOLDER', Config.CHAT_DATA_FOLDER)
+    os.makedirs(instance_folder, exist_ok=True)
+    os.makedirs(chat_folder, exist_ok=True)
+
     default_db_path = os.path.join(instance_folder, 'words.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{default_db_path}'
+    app.config['SQLALCHEMY_BINDS'] = {'chat': config[config_name].get_chat_database_uri()}
 
-    # 配置聊天数据库（使用BINDS功能，与单词数据库分开）
-    # 重要：必须在 db.init_app(app) 之前设置 BINDS
-    chat_db_uri = config[config_name].get_chat_database_uri()
-    app.config['SQLALCHEMY_BINDS'] = {'chat': chat_db_uri}
-    
-    # 初始化单词数据库
+    _prepare_legacy_migration(app)
+
     db.init_app(app)
-    
-    # 添加请求前处理函数，根据session中的当前列表动态切换数据库
+
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = '请先登录'
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        from models import User
+
+        return User.query.get(int(user_id))
+
     @app.before_request
     def before_request():
-        """在每个请求之前，根据当前选中的列表切换数据库"""
-        from services.list_service import ListService
-        from sqlalchemy import create_engine
-        
-        # 获取当前列表名称
-        current_list = session.get('current_list')
-        
-        # 如果没有设置当前列表，使用默认列表
-        if not current_list:
-            current_list = ListService.get_default_list()
-            session['current_list'] = current_list
-        
-        # 检查列表是否存在
-        if not ListService.list_exists(current_list):
-            current_list = ListService.get_default_list()
-            session['current_list'] = current_list
-        
-        # 动态设置数据库URI
-        target_uri = config[config_name].get_database_uri(current_list)
-        
-        # 检查是否需要切换数据库
-        current_uri = app.config.get('SQLALCHEMY_DATABASE_URI')
-        
-        if current_uri != target_uri:
-            # 更新配置
-            app.config['SQLALCHEMY_DATABASE_URI'] = target_uri
-            
-            # Flask-SQLAlchemy 3.x: 正确地切换数据库
-            try:
-                # 移除当前session
-                db.session.remove()
-                
-                # 处理引擎切换 - Flask-SQLAlchemy 3.x 方式
-                if hasattr(db, 'engines') and db.engines:
-                    # dispose 所有旧引擎
-                    for key in list(db.engines.keys()):
-                        if db.engines[key]:
-                            db.engines[key].dispose()
-                    # 清空引擎字典，让 Flask-SQLAlchemy 自动重新创建
-                    db.engines.clear()
-                
-                # 创建新引擎并添加到引擎字典
-                # Flask-SQLAlchemy 3.x 使用 None 作为默认数据库的 key
-                new_engine = create_engine(
-                    target_uri,
-                    echo=app.config.get('SQLALCHEMY_ECHO', False),
-                    pool_pre_ping=True
-                )
-                db.engines[None] = new_engine
-                
-            except Exception as e:
-                # 如果切换失败，记录错误
-                print(f"数据库切换错误: {e}")
-                import traceback
-                traceback.print_exc()
+        if not current_user.is_authenticated:
+            session.pop('current_list', None)
+            return
 
-    # 注册蓝图
+        from services.list_service import ListService
+
+        current_list = session.get('current_list')
+        if not current_list or not ListService.list_exists(current_list, user=current_user):
+            session['current_list'] = ListService.get_default_list(user=current_user)
+
     from routes import register_blueprints
+
     register_blueprints(app)
-    
-    # 初始化数据库（在应用上下文中）
+
     with app.app_context():
-        # 导入所有模型（包括chat_models），确保Flask-SQLAlchemy知道所有表
-        from models import Word
         from chat_models import Conversation, Message
-        
-        # 创建所有表（如果不存在）
-        # db.create_all()会自动创建所有数据库中的表，包括bind='chat'的表
+        from models import User, UserApiConfig, Word, WordList
+
         db.create_all()
-        
-        # 如果数据库是空的，但JSON文件存在，则导入数据
+        _import_legacy_data(app)
+
+        from services.list_service import ListService
+
+        for user in User.query.all():
+            ListService.ensure_user_default_list(user)
+            if not user.api_config:
+                db.session.add(UserApiConfig(user=user))
+
+        db.session.commit()
+
         try:
-            if Word.query.count() == 0 and os.path.exists('words.json'):
-                migrate_json_to_db()
+            default_list = WordList.query.first()
+            if default_list and Word.query.count() == 0 and os.path.exists('words.json'):
+                migrate_json_to_db(default_list)
         except Exception as e:
             print(f"初始化数据库时出错: {e}")
-            # 如果查询失败，可能是因为引擎还未正确初始化，忽略这个错误
-    
+
     return app
 
 
-def migrate_json_to_db():
+def migrate_json_to_db(default_list):
     """从JSON文件迁移数据到数据库"""
     import json
     from models import Word
-    
+
     with open('words.json', 'r', encoding='utf-8') as f:
         words_data = json.load(f)
-        
+
     for word_data in words_data:
-        word = Word.from_dict(word_data)
+        word = Word.from_dict(word_data, list_id=default_list.id)
         db.session.add(word)
-    
+
     db.session.commit()
     print(f"成功导入 {len(words_data)} 个单词到数据库")
 
 
-# 创建应用实例
 app = create_app()
 
 
 if __name__ == '__main__':
-    # 从环境变量获取调试模式设置
     debug_mode = os.environ.get('DEBUG', 'True').lower() == 'true'
     app.run(debug=debug_mode)

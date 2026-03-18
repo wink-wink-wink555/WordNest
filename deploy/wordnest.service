@@ -1,0 +1,15 @@
+[Unit]
+Description=WordNest Flask Application
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/project1/WordNest
+Environment="FLASK_ENV=production"
+Environment="SECRET_KEY=wordnest_prod_secret_2026_change_me"
+ExecStart=/root/project1/WordNest/venv/bin/gunicorn -c gunicorn_config.py app:app
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

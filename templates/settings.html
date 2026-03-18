@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 配置 - WordNest</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { background: var(--bg-color); }
+        .settings-wrap { max-width: 600px; margin: 60px auto; padding: 0 20px; }
+        .settings-card { background: var(--card-bg); border-radius: 16px; padding: 32px; box-shadow: var(--card-shadow); }
+        .settings-card h1 { font-size: 1.5rem; color: var(--text-color); margin-bottom: 6px; }
+        .settings-card .desc { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: var(--text-color); font-size: 0.9rem; }
+        .form-group input {
+            width: 100%; padding: 12px 14px; border: 1px solid var(--input-border); border-radius: 10px;
+            background: var(--input-bg); color: var(--text-color); font-size: 0.95rem; transition: border-color 0.2s;
+        }
+        .form-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(74,108,247,0.15); }
+        .form-hint { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+        .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+        .btn-save {
+            flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
+            background: var(--primary-color); color: #fff; font-size: 1rem; font-weight: 600;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-save:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-back {
+            padding: 12px 20px; border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer;
+            background: var(--card-bg); color: var(--text-color); font-size: 1rem; text-decoration: none;
+            display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .btn-back:hover { background: var(--table-row-hover); }
+        .toast {
+            position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 10px;
+            font-size: 0.9rem; font-weight: 500; opacity: 0; transform: translateY(-10px);
+            transition: all 0.3s; z-index: 999; pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast-success { background: #e6f9ee; color: #00b894; }
+        .toast-error { background: #ffeaea; color: #d63031; }
+        .user-info { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+        .user-info .username { font-weight: 600; color: var(--text-color); }
+        .user-info .logout-btn { color: var(--danger-color); text-decoration: none; font-size: 0.9rem; }
+        .user-info .logout-btn:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="settings-wrap">
+        <div class="settings-card">
+            <div class="user-info">
+                <span class="username">{{ current_user.username }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">退出登录</a>
+            </div>
+            <h1>API 配置</h1>
+            <p class="desc">配置你的 AI 服务参数，用于例句生成、知识图谱等功能</p>
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label for="api_key">API Key</label>
+                    <input type="password" id="api_key" placeholder="sk-xxxxxxxx">
+                    <p class="form-hint">你的 DeepSeek / OpenAI 兼容 API 密钥</p>
+                </div>
+                <div class="form-group">
+                    <label for="api_base_url">API Base URL</label>
+                    <input type="text" id="api_base_url" placeholder="https://api.deepseek.com">
+                    <p class="form-hint">API 服务地址，不需要带 /v1 后缀</p>
+                </div>
+                <div class="form-group">
+                    <label for="model_name">模型名称</label>
+                    <input type="text" id="model_name" placeholder="deepseek-chat">
+                    <p class="form-hint">如 deepseek-chat、gpt-4o 等</p>
+                </div>
+                <div class="btn-row">
+                    <a href="{{ url_for('word.index') }}" class="btn-back">返回首页</a>
+                    <button type="submit" class="btn-save">保存配置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script>
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast toast-' + type + ' show';
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+        async function loadSettings() {
+            const res = await fetch('/api/settings');
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('api_key').value = data.api_key || '';
+                document.getElementById('api_base_url').value = data.api_base_url || '';
+                document.getElementById('model_name').value = data.model_name || '';
+            }
+        }
+        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const body = {
+                api_key: document.getElementById('api_key').value,
+                api_base_url: document.getElementById('api_base_url').value,
+                model_name: document.getElementById('model_name').value
+            };
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            if (res.ok) { showToast('配置已保存', 'success'); }
+            else { showToast('保存失败', 'error'); }
+        });
+        loadSettings();
+    </script>
+</body>
+</html>

@@ -23,11 +23,13 @@ class LLMService:
             API响应内容，失败返回None
         """
         try:
-            api_key = current_app.config.get('DEEPSEEK_API_KEY')
-            base_url = current_app.config.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
+            from services import get_user_api_config
+            user_config = get_user_api_config()
+            api_key = user_config['api_key']
+            base_url = user_config['base_url']
             
             if not api_key:
-                current_app.logger.error("未配置DEEPSEEK_API_KEY")
+                current_app.logger.error("未配置API Key，请在设置页面配置")
                 return None
             
             url = f"{base_url}/chat/completions"
@@ -37,7 +39,7 @@ class LLMService:
             }
             
             data = {
-                'model': 'deepseek-chat',
+                'model': user_config['model_name'],
                 'messages': messages,
                 'temperature': 0.7
             }

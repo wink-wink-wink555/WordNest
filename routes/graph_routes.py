@@ -3,6 +3,7 @@
 """
 import json
 from flask import Blueprint, render_template, request, current_app
+from flask_login import login_required
 from services import GraphService
 from utils.constants import RELATION_COLORS
 
@@ -11,6 +12,7 @@ graph_bp = Blueprint('graph', __name__)
 
 
 @graph_bp.route('/knowledge_graph')
+@login_required
 def knowledge_graph():
     """知识图谱页面"""
     # 获取URL参数
@@ -88,6 +90,7 @@ def knowledge_graph():
 
 
 @graph_bp.route('/test_graph_data')
+@login_required
 def test_graph_data():
     """测试路由，直接返回图谱数据JSON用于调试"""
     focus_word = request.args.get('word', 'test')

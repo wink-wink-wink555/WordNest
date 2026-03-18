@@ -34,8 +34,10 @@ class GraphService:
         )
         
         # 准备API调用的headers
-        api_key = current_app.config.get('DEEPSEEK_API_KEY')
-        base_url = current_app.config.get('DEEPSEEK_BASE_URL')
+        from services import get_user_api_config
+        user_config = get_user_api_config()
+        api_key = user_config['api_key']
+        base_url = user_config['base_url']
         
         headers = {
             "Content-Type": "application/json",
@@ -66,7 +68,7 @@ class GraphService:
         
         # 调用Deepseek API
         data = {
-            "model": "deepseek-chat",
+            "model": user_config['model_name'],
             "messages": [
                 {"role": "user", "content": prompt}
             ],

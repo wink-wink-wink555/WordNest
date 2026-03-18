@@ -3,9 +3,10 @@ AI助教路由
 处理AI对话请求和流式响应
 """
 from flask import Blueprint, render_template, request, Response, jsonify, stream_with_context
+from flask_login import current_user, login_required
 from services.ai_service import AIService
 from chat_models import Conversation, Message
-from models import db
+from models import Word, WordList, db
 from datetime import datetime
 
 
@@ -14,6 +15,7 @@ ai_bp = Blueprint('ai', __name__, url_prefix='/ai')
 
 
 @ai_bp.route('/tutor')
+@login_required
 def ai_tutor():
     """
     AI助教页面
@@ -25,6 +27,7 @@ def ai_tutor():
 
 
 @ai_bp.route('/chat_stream', methods=['POST'])
+@login_required
 def chat_stream():
     """
     流式对话接口
@@ -46,6 +49,13 @@ def chat_stream():
         
         # 保存用户消息到数据库
         if conversation_id:
+            conversation = Conversation.query.filter_by(
+                id=conversation_id,
+                user_id=current_user.id,
+            ).first()
+            if not conversation:
+                return jsonify({'error': '对话不存在'}), 404
+
             user_msg = Message(
                 conversation_id=conversation_id,
                 role='user',
@@ -85,7 +95,10 @@ def chat_stream():
                     db.session.add(assistant_msg)
                     
                     # 更新对话的更新时间
-                    conversation = Conversation.query.get(conversation_id)
+                    conversation = Conversation.query.filter_by(
+                        id=conversation_id,
+                        user_id=current_user.id,
+                    ).first()
                     if conversation:
                         conversation.updated_at = datetime.utcnow()
                     
@@ -112,6 +125,7 @@ def chat_stream():
 
 
 @ai_bp.route('/conversations', methods=['GET'])
+@login_required
 def get_conversations():
     """
     获取所有对话列表
@@ -120,13 +134,16 @@ def get_conversations():
         对话列表JSON
     """
     try:
-        conversations = Conversation.query.order_by(Conversation.updated_at.desc()).all()
+        conversations = Conversation.query.filter_by(
+            user_id=current_user.id
+        ).order_by(Conversation.updated_at.desc()).all()
         return jsonify([conv.to_dict() for conv in conversations])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
 @ai_bp.route('/conversations', methods=['POST'])
+@login_required
 def create_conversation():
     """
     创建新对话
@@ -139,6 +156,7 @@ def create_conversation():
         title = data.get('title', '新对话')
         
         conversation = Conversation(
+            user_id=current_user.id,
             title=title,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
@@ -153,6 +171,7 @@ def create_conversation():
 
 
 @ai_bp.route('/conversations/<int:conversation_id>', methods=['GET'])
+@login_required
 def get_conversation(conversation_id):
     """
     获取指定对话的详细信息（包括所有消息）
@@ -164,7 +183,10 @@ def get_conversation(conversation_id):
         对话详细信息JSON
     """
     try:
-        conversation = Conversation.query.get_or_404(conversation_id)
+        conversation = Conversation.query.filter_by(
+            id=conversation_id,
+            user_id=current_user.id,
+        ).first_or_404()
         messages = Message.query.filter_by(conversation_id=conversation_id).order_by(Message.created_at.asc()).all()
         
         return jsonify({
@@ -176,6 +198,7 @@ def get_conversation(conversation_id):
 
 
 @ai_bp.route('/conversations/<int:conversation_id>', methods=['PUT'])
+@login_required
 def update_conversation(conversation_id):
     """
     更新对话信息（如标题）
@@ -187,7 +210,10 @@ def update_conversation(conversation_id):
         更新后的对话信息JSON
     """
     try:
-        conversation = Conversation.query.get_or_404(conversation_id)
+        conversation = Conversation.query.filter_by(
+            id=conversation_id,
+            user_id=current_user.id,
+        ).first_or_404()
         data = request.get_json()
         
         if 'title' in data:
@@ -203,6 +229,7 @@ def update_conversation(conversation_id):
 
 
 @ai_bp.route('/conversations/<int:conversation_id>', methods=['DELETE'])
+@login_required
 def delete_conversation(conversation_id):
     """
     删除指定对话（包括所有消息）
@@ -214,7 +241,10 @@ def delete_conversation(conversation_id):
         成功消息JSON
     """
     try:
-        conversation = Conversation.query.get_or_404(conversation_id)
+        conversation = Conversation.query.filter_by(
+            id=conversation_id,
+            user_id=current_user.id,
+        ).first_or_404()
         db.session.delete(conversation)
         db.session.commit()
         
@@ -225,6 +255,7 @@ def delete_conversation(conversation_id):
 
 
 @ai_bp.route('/test', methods=['GET'])
+@login_required
 def test():
     """
     测试接口，用于验证AI服务是否正常工作
@@ -234,11 +265,14 @@ def test():
     """
     try:
         # 测试数据库连接
-        from models import Word
-        word_count = Word.query.count()
+        word_count = db.session.query(Word).join(
+            WordList, Word.list_id == WordList.id
+        ).filter(
+            WordList.user_id == current_user.id
+        ).count()
         
         # 测试聊天数据库连接
-        conversation_count = Conversation.query.count()
+        conversation_count = Conversation.query.filter_by(user_id=current_user.id).count()
         
         return jsonify({
             'status': 'ok',

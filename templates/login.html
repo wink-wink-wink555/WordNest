@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - WordNest</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: var(--bg-color); }
+        .auth-card {
+            width: 100%; max-width: 400px; padding: 40px; border-radius: 16px;
+            background: var(--card-bg); box-shadow: var(--card-shadow);
+        }
+        .auth-card h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: var(--text-color); }
+        .auth-card .subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 28px; font-size: 0.9rem; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: var(--text-color); font-size: 0.9rem; }
+        .form-group input {
+            width: 100%; padding: 12px 14px; border: 1px solid var(--input-border); border-radius: 10px;
+            background: var(--input-bg); color: var(--text-color); font-size: 1rem; transition: border-color 0.2s;
+        }
+        .form-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(74,108,247,0.15); }
+        .btn-primary {
+            width: 100%; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
+            background: var(--primary-color); color: #fff; font-size: 1rem; font-weight: 600;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(0); }
+        .auth-link { text-align: center; margin-top: 18px; color: var(--text-secondary); font-size: 0.9rem; }
+        .auth-link a { color: var(--primary-color); text-decoration: none; font-weight: 500; }
+        .auth-link a:hover { text-decoration: underline; }
+        .flash-msg {
+            padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;
+        }
+        .flash-error { background: #ffeaea; color: #d63031; }
+        .flash-success { background: #e6f9ee; color: #00b894; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h1>WordNest</h1>
+        <p class="subtitle">登录你的单词小窝</p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+        <form method="POST">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码" required>
+            </div>
+            <button type="submit" class="btn-primary">登 录</button>
+        </form>
+        <p class="auth-link">还没有账号？<a href="{{ url_for('auth.register') }}">立即注册</a></p>
+    </div>
+</body>
+</html>

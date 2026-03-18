@@ -7,6 +7,7 @@ from io import StringIO
 import tempfile
 import pyttsx3
 from flask import Blueprint, render_template, jsonify, request, redirect, url_for, Response, send_file, send_from_directory
+from flask_login import login_required
 from services import WordService, LLMService
 from utils import load_settings, save_settings, ENCOURAGEMENT_MESSAGES
 
@@ -21,6 +22,7 @@ def favicon():
 
 
 @word_bp.route('/')
+@login_required
 def index():
     """主页"""
     # 随机选择一条鼓励话语
@@ -29,6 +31,7 @@ def index():
 
 
 @word_bp.route('/get_random_word')
+@login_required
 def get_random_word():
     """获取随机单词"""
     # 获取上一次的单词
@@ -62,6 +65,7 @@ def get_random_word():
 
 
 @word_bp.route('/get_marked_only_status')
+@login_required
 def get_marked_only_status():
     """获取是否只抽查标注单词的设置"""
     settings = load_settings()
@@ -69,6 +73,7 @@ def get_marked_only_status():
 
 
 @word_bp.route('/toggle_marked_only', methods=['POST'])
+@login_required
 def toggle_marked_only():
     """切换是否只抽查标注单词的设置"""
     data = request.json
@@ -79,6 +84,7 @@ def toggle_marked_only():
 
 
 @word_bp.route('/get_word_definition/<word>')
+@login_required
 def get_word_definition(word):
     """获取指定单词的定义"""
     word_data = WordService.find_word(word)
@@ -88,6 +94,7 @@ def get_word_definition(word):
 
 
 @word_bp.route('/is_word_marked/<word>')
+@login_required
 def is_word_marked(word):
     """检查单词是否被标记"""
     word_data = WordService.find_word(word)
@@ -97,6 +104,7 @@ def is_word_marked(word):
 
 
 @word_bp.route('/mark_word/<word>', methods=['POST'])
+@login_required
 def mark_word(word):
     """标记单词"""
     if WordService.mark_word(word, marked=True):
@@ -105,6 +113,7 @@ def mark_word(word):
 
 
 @word_bp.route('/unmark_word/<word>', methods=['POST'])
+@login_required
 def unmark_word(word):
     """取消标记单词"""
     if WordService.mark_word(word, marked=False):
@@ -113,6 +122,7 @@ def unmark_word(word):
 
 
 @word_bp.route('/word_list')
+@login_required
 def word_list():
     """单词列表页面"""
     words = WordService.get_words_with_definitions()
@@ -120,6 +130,7 @@ def word_list():
 
 
 @word_bp.route('/add_word', methods=['GET', 'POST'])
+@login_required
 def add_word():
     """添加新单词"""
     if request.method == 'GET':
@@ -140,6 +151,7 @@ def add_word():
 
 
 @word_bp.route('/edit_word/<word>', methods=['GET', 'POST'])
+@login_required
 def edit_word(word):
     """编辑单词"""
     if request.method == 'GET':
@@ -158,6 +170,7 @@ def edit_word(word):
 
 
 @word_bp.route('/add_definition/<word>', methods=['GET', 'POST'])
+@login_required
 def add_definition(word):
     """为单词添加新的定义"""
     if request.method == 'GET':
@@ -176,6 +189,7 @@ def add_definition(word):
 
 
 @word_bp.route('/delete_word/<word>', methods=['GET', 'POST'])
+@login_required
 def delete_word(word):
     """删除单词"""
     if not WordService.delete_word(word):
@@ -187,6 +201,7 @@ def delete_word(word):
 
 
 @word_bp.route('/export_words')
+@login_required
 def export_words():
     """导出单词列表为CSV，支持筛选和排序"""
     # 获取筛选和排序参数
@@ -226,6 +241,7 @@ def export_words():
 
 
 @word_bp.route('/generate_example', methods=['POST'])
+@login_required
 def generate_example():
     """使用大模型生成例句"""
     data = request.json
@@ -245,6 +261,7 @@ def generate_example():
 
 
 @word_bp.route('/generate_note', methods=['POST'])
+@login_required
 def generate_note():
     """使用大模型生成笔记"""
     data = request.json
@@ -264,6 +281,7 @@ def generate_note():
 
 
 @word_bp.route('/ai_fill_word', methods=['POST'])
+@login_required
 def ai_fill_word():
     """使用AI一键填充单词的完整信息（支持多重释义）"""
     data = request.json
@@ -290,6 +308,7 @@ def ai_fill_word():
 
 
 @word_bp.route('/get_word_details/<word>')
+@login_required
 def get_word_details(word):
     """获取单词详情（包括前后单词）"""
     details = WordService.get_word_details(word)
@@ -300,6 +319,7 @@ def get_word_details(word):
 
 
 @word_bp.route('/speak_word/<word>')
+@login_required
 def speak_word(word):
     """生成并返回单词语音"""
     try:

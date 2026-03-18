@@ -2,6 +2,7 @@
 单词列表管理路由
 """
 from flask import Blueprint, jsonify, request, session
+from flask_login import login_required
 from services.list_service import ListService
 
 
@@ -9,6 +10,7 @@ list_bp = Blueprint('list', __name__)
 
 
 @list_bp.route('/api/lists', methods=['GET'])
+@login_required
 def get_lists():
     """获取所有单词列表"""
     try:
@@ -24,6 +26,7 @@ def get_lists():
 
 
 @list_bp.route('/api/lists/current', methods=['GET'])
+@login_required
 def get_current_list():
     """获取当前选中的列表"""
     try:
@@ -40,6 +43,7 @@ def get_current_list():
 
 
 @list_bp.route('/api/lists/switch', methods=['POST'])
+@login_required
 def switch_list():
     """切换到指定的单词列表"""
     try:
@@ -68,6 +72,7 @@ def switch_list():
 
 
 @list_bp.route('/api/lists/create', methods=['POST'])
+@login_required
 def create_list():
     """创建新的单词列表"""
     try:
@@ -86,12 +91,13 @@ def create_list():
             return jsonify({'error': '列表已存在或名称无效'}), 400
         
         # 创建成功后，自动切换到新列表
+        sanitized_name = ListService.sanitize_list_name(list_name)
         if auto_switch:
-            session['current_list'] = list_name
+            session['current_list'] = sanitized_name
         
         return jsonify({
             'success': True,
-            'list_name': list_name,
+            'list_name': sanitized_name,
             'switched': auto_switch
         })
     except Exception as e:
@@ -99,6 +105,7 @@ def create_list():
 
 
 @list_bp.route('/api/lists/rename', methods=['POST'])
+@login_required
 def rename_list():
     """重命名单词列表"""
     try:
@@ -133,7 +140,7 @@ def rename_list():
         # 如果重命名的是当前列表，更新session
         current_list = session.get('current_list', '')
         if current_list == old_name:
-            session['current_list'] = new_name
+            session['current_list'] = ListService.sanitize_list_name(new_name)
         
         print("重命名成功")
         return jsonify({
@@ -149,6 +156,7 @@ def rename_list():
 
 
 @list_bp.route('/api/lists/delete', methods=['POST'])
+@login_required
 def delete_list():
     """删除单词列表（只有空列表才能删除）"""
     try:

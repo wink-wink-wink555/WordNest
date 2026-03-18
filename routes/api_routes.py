@@ -3,6 +3,7 @@ API路由
 提供RESTful API接口
 """
 from flask import Blueprint, jsonify, request, current_app
+from flask_login import login_required
 from services import GraphService
 
 
@@ -10,6 +11,7 @@ api_bp = Blueprint('api', __name__)
 
 
 @api_bp.route('/graph_data')
+@login_required
 def graph_data():
     """API接口，返回知识图谱的JSON数据供前端异步加载"""
     try:
