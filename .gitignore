@@ -25,6 +25,7 @@ env/
 settings.json
 instance/
 *.db
+*.db.legacy_*
 *.sqlite
 *.sqlite3
 .vscode/
